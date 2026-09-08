@@ -141,6 +141,27 @@
   .ctx button { text-align: left; border: 0; background: transparent; color: var(--ink); padding: 9px 12px; border-radius: 8px; font-size: 13.5px; font-weight: 600; cursor: pointer; }
   .ctx button:hover { background: rgba(255,255,255,0.07); color: var(--orange); }
 
+  /* Reframing: drag an image inside its box to choose which part shows. */
+  .m-slot.framing { cursor: grab; touch-action: none; }
+  .m-slot.framing.dragging { cursor: grabbing; }
+  .m-slot.framing img { pointer-events: none; user-select: none; -webkit-user-drag: none; }
+  .m-slot.framing .play, .m-slot.framing .m-btn, .m-slot.framing .x-btn, .m-slot.framing .empty { display: none !important; }
+  .m-slot.framing ~ .inner { pointer-events: none; }
+  .m-slot.framing::before {
+    content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    border: 2px solid var(--orange); border-radius: inherit;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.35);
+  }
+  .frame-bar {
+    position: absolute; left: 50%; top: 12px; transform: translateX(-50%); z-index: 6;
+    display: flex; align-items: center; gap: 8px; white-space: nowrap;
+    padding: 6px 6px 6px 14px; border-radius: var(--r-pill);
+    background: var(--panel-2); border: 1px solid var(--line-strong);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.5);
+    font-size: 12.5px; font-weight: 700; color: var(--ink);
+  }
+  @media (max-width: 720px) { .frame-bar span { display: none; } .frame-bar { padding-left: 6px; } }
+
   /* ---------- Logos ---------- */
   .logos { padding: 44px 0 24px; }
   .logos .label { display: block; text-align: center; margin-bottom: 18px; }
@@ -378,6 +399,18 @@
     setTimeout(function () { if (d.parentNode) d.remove(); }, err ? 7000 : 3500);
   }
   function mediaBtn(path, label, right) { return admin ? '<button type="button" class="btn btn-ghost btn-sm m-btn' + (right ? " right" : "") + '" data-media="' + path + '">' + (label || "Replace") + '</button>' : ""; }
+  function clamp(v) { return Math.max(0, Math.min(100, v)); }
+  function posOf(m) {
+    return { x: m && typeof m.px === "number" ? clamp(m.px) : 50, y: m && typeof m.py === "number" ? clamp(m.py) : 50 };
+  }
+  // An image cropped by its box. object-position decides which part stays visible.
+  function mediaImg(m, eager) {
+    if (!m || !m.src) return "";
+    var p = posOf(m);
+    return '<img src="' + m.src + '" alt="' + esc(m.alt) + '" loading="' + (eager ? "eager" : "lazy") +
+      '" style="object-position:' + p.x + '% ' + p.y + '%">';
+  }
+  function posAttr(path, m) { return m && m.src ? ' data-pos="' + path + '"' : ""; }
   function isVideoUrl(u) { return /youtube\.com|youtu\.be|vimeo\.com/i.test(u || ""); }
   // Inside the claude.ai artifact viewer, embedded players are blocked by policy; on any other host they play inline.
   var EMBED_OK = !(window.claude && typeof window.claude.use === "function");
@@ -400,6 +433,86 @@
     c.style.left = Math.min(x, window.innerWidth - w - 8) + "px";
     c.style.top = Math.min(y, window.innerHeight - hh - 8) + "px";
   }
+
+  // ---------- Reframing ----------
+  // Images are cropped to their box by object-fit: cover. Dragging moves the
+  // image inside that box, so the owner picks which part survives the crop.
+  var framing = null;
+
+  function applyFraming() {
+    if (framing) framing.img.style.objectPosition = framing.x + "% " + framing.y + "%";
+  }
+  function commitFraming() {
+    if (!framing) return;
+    var m = get(framing.path);
+    if (!m) return;
+    var nx = Math.round(framing.x), ny = Math.round(framing.y);
+    if (m.px !== nx || m.py !== ny) { m.px = nx; m.py = ny; markDirty(); }
+  }
+  function exitFraming() {
+    if (!framing) return;
+    var bar = framing.slot.querySelector(".frame-bar");
+    if (bar) bar.remove();
+    framing.slot.classList.remove("framing", "dragging");
+    framing = null;
+  }
+  function enterFraming(slot) {
+    exitFraming();
+    closeCtx();
+    var path = slot && slot.dataset.pos, img = slot && slot.querySelector("img");
+    if (!path || !img) return;
+    var p = posOf(get(path));
+    framing = { slot: slot, img: img, path: path, x: p.x, y: p.y };
+    slot.classList.add("framing");
+    // Dragging needs the image's real dimensions, so stop deferring its load.
+    img.loading = "eager";
+    var box = slot.getBoundingClientRect();
+    if (box.top < 70 || box.bottom > window.innerHeight - 70) {
+      slot.scrollIntoView({ block: "center", behavior: "instant" });
+    }
+    var bar = document.createElement("div");
+    bar.className = "frame-bar";
+    bar.innerHTML = '<span>Drag the image, or use the arrow keys</span>' +
+      '<button type="button" class="btn btn-ghost btn-sm" data-frame-reset>Centre</button>' +
+      '<button type="button" class="btn btn-primary btn-sm" data-frame-done>Done</button>';
+    slot.appendChild(bar);
+    applyFraming();
+    toast("Drag the image to choose what stays in frame.");
+  }
+
+  document.addEventListener("pointerdown", function (ev) {
+    if (!framing || ev.button !== 0) return;
+    if (ev.target.closest(".frame-bar")) return;
+    var slot = ev.target.closest(".m-slot.framing");
+    if (slot !== framing.slot) return;
+    var img = framing.img, box = slot.getBoundingClientRect();
+    var nw = img.naturalWidth, nh = img.naturalHeight;
+    if (!nw || !nh || !box.width || !box.height) return;
+    ev.preventDefault();
+    // How far the covered image overflows its box is how far it can travel.
+    var scale = Math.max(box.width / nw, box.height / nh);
+    var overX = nw * scale - box.width, overY = nh * scale - box.height;
+    var sx = ev.clientX, sy = ev.clientY, x0 = framing.x, y0 = framing.y;
+    slot.classList.add("dragging");
+    try { slot.setPointerCapture(ev.pointerId); } catch (e) {}
+
+    function move(e) {
+      if (overX > 0.5) framing.x = clamp(x0 - (e.clientX - sx) / overX * 100);
+      if (overY > 0.5) framing.y = clamp(y0 - (e.clientY - sy) / overY * 100);
+      applyFraming();
+    }
+    function up() {
+      slot.classList.remove("dragging");
+      try { slot.releasePointerCapture(ev.pointerId); } catch (e) {}
+      slot.removeEventListener("pointermove", move);
+      slot.removeEventListener("pointerup", up);
+      slot.removeEventListener("pointercancel", up);
+      commitFraming();
+    }
+    slot.addEventListener("pointermove", move);
+    slot.addEventListener("pointerup", up);
+    slot.addEventListener("pointercancel", up);
+  });
   function exportHtml() {
     var html = buildHtml(), name = "ewilson-alva-portfolio.html";
     var dl = (window.claude && typeof window.claude.use === "function") ? window.claude.use("downloads") : Promise.resolve(null);
@@ -434,10 +547,10 @@
     var base = "reels." + i;
     var v = r.video || {};
     var has = (v.kind === "upload" && v.src) || (v.kind === "link" && v.url);
-    var poster = r.poster && r.poster.src ? '<img src="' + r.poster.src + '" alt="' + esc(r.poster.alt) + '" loading="' + (featured ? "eager" : "lazy") + '">' : "";
+    var poster = mediaImg(r.poster, featured);
     var tag = v.kind === "link" ? (/vimeo/i.test(v.url) ? "Vimeo" : (/youtu/i.test(v.url) ? "YouTube" : "Link")) : (v.kind === "upload" ? "Play" : "Soon");
     return '<article class="reel' + (featured ? " featured" : "") + ' rise">' +
-      '<div class="screen m-slot" data-reel="' + i + '">' + poster +
+      '<div class="screen m-slot" data-reel="' + i + '"' + posAttr(base + ".poster", r.poster) + '>' + poster +
         (has ? '<button type="button" class="play" data-play="' + i + '" aria-label="Play ' + esc(r.title) + '">' + playSvg() + '</button>' : '<div class="empty">' + (admin ? "No video yet. Right-click to upload one." : "Reel coming soon") + '</div>') +
         mediaBtn(base + ".poster", "Poster") + (admin ? '<button type="button" class="btn btn-ghost btn-sm m-btn right" data-video="' + base + '.video">Video source</button>' : "") +
       '</div>' +
@@ -458,7 +571,7 @@
       }).join("") + (admin ? '<li><button type="button" class="add-btn" data-add-award="' + gb + '">' + plusSvg() + 'Add</button></li>' : "") + '</ul></div>';
     }).join("") + (admin ? '<div class="award-group"><button type="button" class="add-btn" data-add-group="' + base + '">' + plusSvg() + 'Award body</button></div>' : "");
     var visual = p.media && p.media.src
-      ? '<div class="visual m-slot"><img src="' + p.media.src + '" alt="' + esc(p.media.alt) + '" loading="lazy">' + mediaBtn(base + ".media") + '</div>'
+      ? '<div class="visual m-slot"' + posAttr(base + ".media", p.media) + '>' + mediaImg(p.media) + mediaBtn(base + ".media") + '</div>'
       : '<div class="visual tone ' + esc(p.tone || "lav") + ' m-slot"><span class="year" aria-hidden="true">' + esc(p.y) + '</span>' + mediaBtn(base + ".media", "Add image") + '</div>';
     return '<article class="card reveal' + (p.wide ? " wide" : "") + '" style="--span:' + (p.span || 4) + '">' + visual +
       '<div class="body"><h3' + e(base + ".t") + '>' + esc(p.t) + '</h3>' +
@@ -469,6 +582,7 @@
   }
 
   function render() {
+    exitFraming();
     var s = S.site, h = [];
     document.body.classList.toggle("admin", admin);
     document.title = s.name;
@@ -496,13 +610,13 @@
       '<div class="work">' + S.projects.map(cardHtml).join("") + '</div></div></section>');
 
     var tk = S.talks;
-    h.push('<section class="block" id="talks" style="padding-top:0"><div class="wrap talks"><div class="frame reveal"><div class="media m-slot">' +
-      (tk.media && tk.media.src ? '<img src="' + tk.media.src + '" alt="' + esc(tk.media.alt) + '" loading="lazy">' : "") + mediaBtn("talks.media") + '</div>' +
+    h.push('<section class="block" id="talks" style="padding-top:0"><div class="wrap talks"><div class="frame reveal"><div class="media m-slot"' + posAttr("talks.media", tk.media) + '>' +
+      mediaImg(tk.media) + mediaBtn("talks.media") + '</div>' +
       '<div class="slate"><div>Format<b' + e("talks.slate.0") + '>' + t("talks.slate.0") + '</b></div><div>Length<b' + e("talks.slate.1") + '>' + t("talks.slate.1") + '</b></div><div>Audience<b' + e("talks.slate.2") + '>' + t("talks.slate.2") + '</b></div></div></div>' +
       '<div class="reveal"><h2' + e("talks.h") + '>' + t("talks.h") + '</h2><p' + e("talks.p") + '>' + t("talks.p") + '</p><div class="venues">' +
       tk.venues.map(function (v, i) {
         var vb = "talks.venues." + i, hasImg = v.media && v.media.src;
-        var vis = hasImg ? '<div class="visual m-slot"><img src="' + v.media.src + '" alt="' + esc(v.media.alt) + '" loading="lazy">' + mediaBtn(vb + ".media") + '</div>'
+        var vis = hasImg ? '<div class="visual m-slot"' + posAttr(vb + ".media", v.media) + '>' + mediaImg(v.media) + mediaBtn(vb + ".media") + '</div>'
           : (admin ? '<div class="visual m-slot empty"><span>No image yet</span>' + mediaBtn(vb + ".media", "Add image") + '</div>' : "");
         return '<div class="venue">' + vis + '<div class="vbody"><h3' + e(vb + ".h") + '>' + esc(v.h) + '</h3><p' + e(vb + ".p") + '>' + esc(v.p) + '</p></div></div>';
       }).join("") +
@@ -516,8 +630,8 @@
       }).join("") + '</ul></div></section>');
 
     var c = S.contact;
-    h.push('<section class="block" id="contact" style="padding-top:0"><div class="wrap"><div class="band reveal"><div class="m-slot">' +
-      (c.media && c.media.src ? '<img src="' + c.media.src + '" alt="' + esc(c.media.alt) + '" loading="lazy">' : "") + mediaBtn("contact.media") + '</div>' +
+    h.push('<section class="block" id="contact" style="padding-top:0"><div class="wrap"><div class="band reveal"><div class="m-slot"' + posAttr("contact.media", c.media) + '>' +
+      mediaImg(c.media) + mediaBtn("contact.media") + '</div>' +
       '<div class="inner"><h2' + e("contact.h") + '>' + t("contact.h") + '</h2><p' + e("contact.p") + '>' + t("contact.p") + '</p>' +
       '<div class="ctas"><a class="btn btn-primary" href="' + esc(s.contactUrl) + '" target="_blank" rel="noopener">' + esc(s.ctaLabel) + '</a></div></div></div></div></section>');
 
@@ -696,6 +810,12 @@
 
   // ---------- events ----------
   document.addEventListener("click", function (ev) {
+    if (ev.target.closest("[data-frame-done]")) { commitFraming(); exitFraming(); return; }
+    if (ev.target.closest("[data-frame-reset]")) {
+      if (framing) { framing.x = 50; framing.y = 50; applyFraming(); commitFraming(); }
+      return;
+    }
+    if (framing && ev.target.closest(".m-slot.framing")) return;
     var b = ev.target.closest("[data-play]");
     if (b) {
       var r = S.reels[+b.dataset.play], v = r.video || {}, scr = b.closest(".screen");
@@ -746,14 +866,17 @@
     if (!admin) return;
     var scr = ev.target.closest(".reel .screen"), lg = ev.target.closest(".logo"), slot = ev.target.closest(".m-slot");
     if (!scr && !lg && !slot) return;
+    if (framing && slot === framing.slot) { ev.preventDefault(); return; }
     ev.preventDefault();
     if (scr) {
       var i = +scr.dataset.reel, base = "reels." + i;
-      showCtx(ev.clientX, ev.clientY, [
+      var reelItems = [
         ["Upload video", function () { openMedia(base + ".video", "video", "file"); }],
         ["Set video link (YouTube or Vimeo)", function () { openMedia(base + ".video", "video", "link"); }],
         ["Upload thumbnail", function () { openMedia(base + ".poster", "image"); }]
-      ]);
+      ];
+      if (scr.dataset.pos) reelItems.push(["Adjust framing", function () { enterFraming(scr); }]);
+      showCtx(ev.clientX, ev.clientY, reelItems);
     } else if (lg) {
       var li = +lg.dataset.logo, L = S.logos[li];
       showCtx(ev.clientX, ev.clientY, [
@@ -762,11 +885,29 @@
         ["Remove logo", function () { S.logos.splice(li, 1); markDirty(); render(); }]
       ]);
     } else {
-      var btn = slot.querySelector("[data-media]");
-      if (btn) showCtx(ev.clientX, ev.clientY, [["Replace image", function () { btn.click(); }]]);
+      var btn = slot.querySelector("[data-media]"), items = [];
+      if (btn) items.push(["Replace image", function () { btn.click(); }]);
+      if (slot.dataset.pos) items.push(["Adjust framing", function () { enterFraming(slot); }]);
+      if (items.length) showCtx(ev.clientX, ev.clientY, items);
     }
   });
-  document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closeCtx(); });
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape") {
+      if (framing) { commitFraming(); exitFraming(); } else closeCtx();
+      return;
+    }
+    if (!framing) return;
+    var t = ev.target;
+    if (t && (t.isContentEditable || t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+    // Arrows nudge the image itself, the same direction dragging would.
+    var step = ev.shiftKey ? 1 : 5, moved = true;
+    if (ev.key === "ArrowLeft") framing.x = clamp(framing.x + step);
+    else if (ev.key === "ArrowRight") framing.x = clamp(framing.x - step);
+    else if (ev.key === "ArrowUp") framing.y = clamp(framing.y + step);
+    else if (ev.key === "ArrowDown") framing.y = clamp(framing.y - step);
+    else moved = false;
+    if (moved) { ev.preventDefault(); applyFraming(); commitFraming(); }
+  });
 
   document.addEventListener("input", function (ev) {
     var el = ev.target.closest("[data-e]");
