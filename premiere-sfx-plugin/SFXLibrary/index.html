@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>SFX Library</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="titlebar">
+      <button id="back" class="icon-btn" title="Back to folders" hidden>
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      </button>
+      <h1 id="title">Library</h1>
+      <span id="seq" class="seq" title="Active sequence"></span>
+    </div>
+    <label class="search">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="q" type="search" placeholder="Search sounds or categories…" autocomplete="off" spellcheck="false">
+      <button id="clear" class="icon-btn small" title="Clear search" hidden>
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </label>
+  </header>
+
+  <main id="list" class="list"></main>
+
+  <footer class="bottom">
+    <label class="opt" title="Which audio track Apply places the sound on">
+      Track
+      <select id="track">
+        <option value="0">Auto (first free)</option>
+        <option value="1">A1</option><option value="2">A2</option><option value="3">A3</option>
+        <option value="4">A4</option><option value="5">A5</option><option value="6">A6</option>
+        <option value="7">A7</option><option value="8">A8</option>
+      </select>
+    </label>
+    <label class="opt" title="After Apply, move the playhead to the end of the sound">
+      <input id="move" type="checkbox"> Move playhead
+    </label>
+    <label class="opt vol" title="Preview volume">
+      <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16 9a4 4 0 010 6"/></svg>
+      <input id="vol" type="range" min="0" max="1" step="0.05" value="0.8">
+    </label>
+  </footer>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script src="library.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
