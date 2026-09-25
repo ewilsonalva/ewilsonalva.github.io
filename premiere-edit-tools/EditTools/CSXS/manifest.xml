@@ -257,7 +257,7 @@
         </Lifecycle>
         <UI>
           <Type>Modeless</Type>
-          <Menu>Edit Tools: Fill Frame</Menu>
+          <Menu>Edit Tools: Fit to Frame</Menu>
           <Geometry>
             <Size><Height>70</Height><Width>300</Width></Size>
           </Geometry>

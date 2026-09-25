@@ -11,7 +11,7 @@ window.ET_TOOLS = [
   { id: "reverse",   name: "Reverse",          key: "E", group: "clip",  icon: '<path d="M4 12a8 8 0 108-8H8"/><path d="M11 1L8 4l3 3"/><path d="M14 9l-4 3 4 3z"/>' },
   { id: "mirror",    name: "Mirror",           key: "M", group: "clip",  icon: '<path d="M12 3v18"/><path d="M9 6L3 18h6zM15 6l6 12h-6z"/>' },
   { id: "rotate",    name: "Rotate 90°",       key: "O", group: "clip",  icon: '<path d="M20 12a8 8 0 11-2.3-5.6"/><path d="M20 4v5h-5"/>' },
-  { id: "fill",      name: "Fill Frame",       key: "I", group: "frame", icon: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M7 9V8h2M17 9V8h-2M7 15v1h2M17 15v1h-2"/>' },
+  { id: "fill",      name: "Fit to Frame",     key: "I", group: "frame", icon: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M7 9V8h2M17 9V8h-2M7 15v1h2M17 15v1h-2"/>' },
   { id: "fullkey",   name: "Full Keyframes",   key: "K", group: "frame", icon: '<path d="M6 12l3-3 3 3-3 3z"/><path d="M15 12l3-3 3 3-3 3z" /><path d="M3 12h1M12 12h1"/>' },
   { id: "clearkeys", name: "Clear Keys",       key: "X", group: "frame", icon: '<path d="M9 12l3-3 3 3-3 3z"/><path d="M4 4l16 16"/>' },
   { id: "speedkeys", name: "Speed Ramp Keys",  key: "R", group: "frame", icon: '<path d="M3 18c4 0 5-10 9-10s5 10 9 10"/><circle cx="7" cy="14" r="1.5"/><circle cx="17" cy="14" r="1.5"/>' },

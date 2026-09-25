@@ -24,16 +24,16 @@ The suggested keys are all **Alt+Shift** (Mac **⌥⇧**) plus a letter. Premier
 | Tool | Key | What it does |
 |---|---|---|
 | Split | Alt+Shift+B | Cuts the selected clips (or every clip under the playhead) at the playhead |
-| Delete Left | Alt+Shift+Q | Removes the part of the clip before the playhead and closes the gap |
-| Delete Right | Alt+Shift+W | Removes the part after the playhead and closes the gap |
+| Delete Left | Alt+Shift+Q | Removes the part of the clip before the playhead, then ripples the rest back so it butts up against the previous clip |
+| Delete Right | Alt+Shift+W | Removes the part after the playhead and ripples the next clip back to the playhead |
 | Link | Alt+Shift+L | Select many videos and audios: each video is linked only to the audio lined up exactly under it (same source first) |
 | Unlink | Alt+Shift+U | Unlinks the selected clip |
 | Freeze | Alt+Shift+F | Inserts a 3 s freeze frame of the playhead frame and pushes the rest of the edit (all tracks) right |
 | Reverse | Alt+Shift+E | Reverses the clip **and its audio**. Press again to un-reverse |
 | Mirror | Alt+Shift+M | Flips the clip horizontally. Press again to remove the flip |
 | Rotate 90° | Alt+Shift+O | Rotates the clip 90° |
-| Fill Frame | Alt+Shift+I | Scales the clip so it fills the whole canvas and centres it |
-| Full Keyframes | Alt+Shift+K | Adds a keyframe at the start and end of the clip for Position, Scale, Rotation and Speed |
+| Fit to Frame | Alt+Shift+I | Scales the clip (up or down, never stretched) so the whole clip fits the sequence frame, and centres it. Right-click the button for **Fill** (covers the frame, crops the edges) |
+| Full Keyframes | Alt+Shift+K | Adds a keyframe on the clip's first and last frame for Position, Scale and Rotation |
 | Clear Keys | Alt+Shift+X | Removes all keyframes from Position, Scale, Rotation and Speed |
 | Speed Ramp Keys | Alt+Shift+R | Turns on Time Remapping speed keyframes at both ends of the clip, ready to ramp |
 | Quick Transition | Alt+Shift+T | Applies the last transition you used. Right-click the button to pick another |
@@ -41,6 +41,8 @@ The suggested keys are all **Alt+Shift** (Mac **⌥⇧**) plus a letter. Premier
 
 The purple **Clip Tool** button opens Freeze / Reverse / Mirror / Rotate like CapCut's menu, and shows the last one you used.
 Hover any button to see its shortcut. The gear button lists all shortcuts; you can change the labels there, and they also work while the panel is focused.
+
+Delete Left/Right ripple like Premiere's ripple delete. Every unlocked track that is clear across the gap moves with the edit, so B-roll, titles and SFX stay in sync. A track that has something running through the gap, like a music bed, stays where it is.
 
 When a tool acts on "the clip", it uses your selection. If nothing is selected, it uses the top clip under the playhead.
 

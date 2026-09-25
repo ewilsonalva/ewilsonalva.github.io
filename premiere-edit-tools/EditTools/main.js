@@ -34,7 +34,7 @@
         } else if (id === "settings") {
           html += '<button class="tool" data-id="settings">' + svg(GEAR) + "</button>";
         } else {
-          html += '<button class="tool' + (id === "transition" ? " more" : "") + '" data-id="' + id + '">' + svg(byId[id].icon) + "</button>";
+          html += '<button class="tool' + (id === "transition" || id === "fill" ? " more" : "") + '" data-id="' + id + '">' + svg(byId[id].icon) + "</button>";
         }
       });
     });
@@ -47,6 +47,7 @@
     if (id === "settings") return "Shortcuts";
     var t = byId[id], extra = "";
     if (id === "transition") extra = "<small>" + lastTransition + " · right-click to change</small>";
+    if (id === "fill") extra = "<small>Whole clip visible, no stretching · right-click for Fill</small>";
     if (id === "crossfade") extra = "<small>2 touching clips: crossfade · 1 clip: fade in/out</small>";
     return t.name + "<kbd>" + ET_keyLabel(keyOf(id)) + "</kbd>" + extra;
   }
@@ -115,6 +116,13 @@
       run("transition", n, anchor);
     });
   }
+  function fitMenu(anchor) {
+    openMenu(anchor,
+      '<div class="hd">Resize to sequence</div>' +
+      '<button data-v="fit">Fit: whole clip visible<kbd>' + ET_keyLabel(keyOf("fill")) + '</kbd></button>' +
+      '<button data-v="fill">Fill: cover the frame, crop edges</button>',
+      function (mode) { run("fill", mode, anchor); });
+  }
   function fadeMenu(anchor) {
     openMenu(anchor,
       '<div class="hd">One clip selected</div>' +
@@ -167,6 +175,7 @@
     if (!b) return;
     var id = b.getAttribute("data-id");
     if (id === "transition") transitionMenu(b);
+    if (id === "fill") fitMenu(b);
     if (id === "cliptool") clipMenu(b);
   });
 

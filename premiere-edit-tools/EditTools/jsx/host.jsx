@@ -134,7 +134,7 @@ function et_param(comp, name) {
     }
     return null;
 }
-/* Position, Scale, Rotation and (when Premiere exposes it) Time Remapping > Speed */
+/* the three Motion properties the keyframe tools work on */
 function et_keyParams(ti) {
     var m = et_component(ti, "Motion"), out = [];
     var names = ["Position", "Scale", "Rotation"];
@@ -142,8 +142,6 @@ function et_keyParams(ti) {
         var p = et_param(m, names[i]);
         if (p) out.push(p);
     }
-    var sp = et_param(et_component(ti, "Time Remapping"), "Speed");
-    if (sp) out.push(sp);
     return out;
 }
 function et_tc(seq, seconds) {
@@ -277,68 +275,103 @@ ET.rotate = function () {
     return "Rotated 90°";
 };
 
-ET.fill = function () {
-    var seq = et_seq(), clips = et_topVideo(seq), done = 0;
+/* Fit (default): whole clip visible, no stretching. "fill": cover the frame, edges cropped. */
+ET.fill = function (mode) {
+    var seq = et_seq(), clips = et_topVideo(seq), done = [], cover = mode === "fill";
     var sw = seq.frameSizeHorizontal, sh = seq.frameSizeVertical;
     for (var i = 0; i < clips.length; i++) {
         var dims = et_frameSize(clips[i].projectItem);
         if (!dims) continue;
         var cw = dims[0], ch = dims[1];
-        var rot = et_param(et_component(clips[i], "Motion"), "Rotation");
-        if (rot && !rot.isTimeVarying() && Math.round(Math.abs(rot.getValue())) % 180 === 90) { var t = cw; cw = ch; ch = t; }
-        var scale = Math.max(sw / cw, sh / ch) * 100;
         var m = et_component(clips[i], "Motion");
+        var rot = et_param(m, "Rotation");
+        if (rot && !rot.isTimeVarying() && Math.round(Math.abs(rot.getValue())) % 180 === 90) { var t = cw; cw = ch; ch = t; }
+        var ratio = cover ? Math.max(sw / cw, sh / ch) : Math.min(sw / cw, sh / ch);
+        var scale = Math.round(ratio * 10000) / 100;
         var sp = et_param(m, "Scale"), pos = et_param(m, "Position");
-        if (sp.isTimeVarying()) throw "Scale has keyframes. Use Clear Keys first.";
+        if (!sp) continue;
         var uni = et_param(m, "Uniform Scale");
         try { if (uni && !uni.getValue()) uni.setValue(true, true); } catch (e) {}
-        sp.setValue(Math.ceil(scale * 100) / 100, true);
-        try { if (pos && !pos.isTimeVarying()) pos.setValue([0.5, 0.5], true); } catch (e) {}
-        done++;
+        if (sp.isTimeVarying()) sp.setTimeVarying(false);        // a fixed size needs no scale keys
+        sp.setValue(scale, true);
+        try { if (pos && !pos.isTimeVarying()) pos.setValue([0.5, 0.5], true); } catch (e2) {}
+        done.push(scale + "% (" + dims[0] + "×" + dims[1] + ")");
     }
-    if (!done) throw "Could not read the clip's frame size.";
-    return "Scaled to fill " + sw + "×" + sh;
+    if (!done.length) throw "Could not read the clip's frame size.";
+    return (cover ? "Fill: " : "Fit: ") + done.join(", ") + " in " + sw + "×" + sh;
 };
+/* the clip's native pixel size, from whichever metadata Premiere provides */
 function et_frameSize(item) {
+    var m;
     try {
         var md = item.getProjectMetadata();
-        var m = /VideoInfo>\s*(\d+)\s*x\s*(\d+)/.exec(md);
+        m = /VideoInfo>\s*(\d+)\s*[x×X]\s*(\d+)/.exec(md);
         if (m) return [parseInt(m[1], 10), parseInt(m[2], 10)];
     } catch (e) {}
     try {
-        var fi = item.getFootageInterpretation();
-        if (fi && fi.frameWidth) return [fi.frameWidth, fi.frameHeight];
+        var xmp = item.getXMPMetadata();
+        var w = /stDim:w(?:>|=")(\d+)/.exec(xmp), h = /stDim:h(?:>|=")(\d+)/.exec(xmp);
+        if (w && h) return [parseInt(w[1], 10), parseInt(h[1], 10)];
     } catch (e2) {}
     return null;
 }
 
-/* keys at the first and last frame of the clip, holding the current value */
+/* Premiere versions differ on whether key times are Time objects or seconds; try both */
+function et_time(sec) { var t = new Time(); t.seconds = sec; return t; }
+function et_addKey(p, sec) {
+    try { p.addKey(et_time(sec)); return; } catch (e) {}
+    p.addKey(sec);
+}
+function et_setKey(p, sec, v) {
+    try { p.setValueAtKey(et_time(sec), v, true); return; } catch (e) {}
+    p.setValueAtKey(sec, v, true);
+}
+function et_keyCount(p) {
+    try { var k = p.getKeys(); return k ? k.length : 0; } catch (e) { return 0; }
+}
+/* Keys sit in the clip's own media time: its first frame in the sequence is inPoint,
+   its last frame is outPoint minus one frame. */
 function et_keyBoth(seq, ti, p) {
-    var a = ti.inPoint.seconds, b = ti.outPoint.seconds - et_frame(seq);
-    var v = p.isTimeVarying() ? p.getValueAtTime(a) : p.getValue();
-    var vb = p.isTimeVarying() ? p.getValueAtTime(b) : v;
-    if (!p.isTimeVarying()) p.setTimeVarying(true);
-    p.addKey(a);
-    p.addKey(b);
-    p.setValueAtKey(a, v, true);
-    p.setValueAtKey(b, vb, true);
+    var f = et_frame(seq);
+    var a = ti.inPoint.seconds, b = ti.outPoint.seconds - f;
+    var wasKeyed = p.isTimeVarying();
+    var va = wasKeyed ? p.getValueAtTime(a) : p.getValue();
+    var vb = wasKeyed ? p.getValueAtTime(b) : va;
+    if (!wasKeyed) p.setTimeVarying(true);
+    et_addKey(p, a);
+    et_addKey(p, b);
+    et_setKey(p, a, va);
+    et_setKey(p, b, vb);
+    // turning keyframes on can drop an extra key at the playhead; keep only the two ends
+    if (!wasKeyed) {
+        try {
+            var keys = p.getKeys();
+            for (var i = 0; keys && i < keys.length; i++) {
+                var ks = keys[i].seconds;
+                if (Math.abs(ks - a) > f / 2 && Math.abs(ks - b) > f / 2) p.removeKey(keys[i]);
+            }
+        } catch (e) {}
+    }
+    return et_keyCount(p) >= 2;
 }
 ET.fullkey = function () {
-    var seq = et_seq(), clips = et_topVideo(seq), n = 0;
+    var seq = et_seq(), clips = et_topVideo(seq), n = 0, last = "";
     for (var i = 0; i < clips.length; i++) {
         var ps = et_keyParams(clips[i]);
         for (var j = 0; j < ps.length; j++) {
-            try { et_keyBoth(seq, clips[i], ps[j]); n++; } catch (e) {}
+            try { if (et_keyBoth(seq, clips[i], ps[j])) n++; } catch (e) { last = e.toString(); }
         }
     }
-    if (!n) throw "Could not add keyframes to this clip.";
-    return "Keyframes added at start and end (" + n + " properties)";
+    if (!n) throw "Could not add keyframes" + (last ? ": " + last : ".");
+    return "Start and end keyframes on Position, Scale and Rotation" + (clips.length > 1 ? " (" + clips.length + " clips)" : "");
 };
 
 ET.clearkeys = function () {
     var seq = et_seq(), clips = et_topVideo(seq), n = 0;
     for (var i = 0; i < clips.length; i++) {
         var ps = et_keyParams(clips[i]);
+        var tr = et_param(et_component(clips[i], "Time Remapping"), "Speed");
+        if (tr) ps.push(tr);
         for (var j = 0; j < ps.length; j++) {
             try { if (ps[j].isTimeVarying()) { ps[j].setTimeVarying(false); n++; } } catch (e) {}
         }
@@ -406,13 +439,18 @@ ET.crossfade = function (mode) {
     return mode === "both" ? "Fade in and out added" : "Fade " + mode + " added";
 };
 
-/* Split / delete left / delete right at the playhead (CapCut style) */
+/* Split / delete left / delete right at the playhead (CapCut style).
+   Acts on the selection; with nothing selected, on the top video clip under the playhead
+   and its linked audio, so a music bed running underneath is left alone. */
 function et_cutTargets(seq) {
-    var items = et_withLinked(et_targets(seq, false));
-    if (!items.length) throw "Park the playhead over a clip.";
-    var t = et_now(seq);
-    items = et_filter(items, function (c) { return c.start.seconds < t - 1e-4 && c.end.seconds > t + 1e-4; });
-    if (!items.length) throw "The playhead is on a cut, nothing to split.";
+    var t = et_now(seq), base = et_selection(seq);
+    if (!base.length) {
+        var under = et_targets(seq, true);
+        if (under.length) base = [under[under.length - 1]];
+        else base = et_targets(seq, false);
+    }
+    var items = et_filter(et_withLinked(base), function (c) { return c.start.seconds < t - 1e-4 && c.end.seconds > t + 1e-4; });
+    if (!items.length) throw "Park the playhead inside a clip.";
     return et_locsOf(seq, items);
 }
 ET.split = function () {
@@ -420,27 +458,84 @@ ET.split = function () {
     et_razorTracks(seq, locs);
     return "Split";
 };
-function et_deleteSide(left) {
-    var seq = et_seq(), t = et_now(seq), locs = et_cutTargets(seq);
-    et_razorTracks(seq, locs);
-    var n = 0, land = t;
+/* Shift every clip starting at or after `from` by `delta` seconds on the given tracks.
+   Linked partners may move together, so a clip already at its target is left alone. */
+function et_shiftAfter(seq, locs, from, delta) {
+    var items = [];
     for (var i = 0; i < locs.length; i++) {
         var tr = et_track(seq, locs[i]);
         for (var c = 0; c < tr.clips.numItems; c++) {
             var ci = tr.clips[c];
-            var hit = left ? Math.abs(ci.end.seconds - t) < ET_EPS : Math.abs(ci.start.seconds - t) < ET_EPS;
-            if (hit) {
-                if (left) land = Math.min(land, ci.start.seconds);
-                ci.remove(true, true);
+            if (ci.start.seconds >= from - 1e-4) items.push({ loc: locs[i], start: ci.start.seconds });
+        }
+    }
+    // moving left: earliest first; moving right: latest first, so clips never collide
+    items.sort(function (x, y) { return delta < 0 ? x.start - y.start : y.start - x.start; });
+    for (var k = 0; k < items.length; k++) {
+        var clip = null, tr2 = et_track(seq, items[k].loc);
+        for (var d = 0; d < tr2.clips.numItems; d++) {
+            var s0 = tr2.clips[d].start.seconds;
+            if (Math.abs(s0 - items[k].start) < 1e-3) clip = tr2.clips[d];
+            if (Math.abs(s0 - (items[k].start + delta)) < 1e-3) { clip = null; break; }   // already moved with its link
+        }
+        if (clip) clip.move(et_time(delta));
+    }
+}
+/* true when nothing on the track overlaps [a, b] */
+function et_trackFree(track, a, b) {
+    for (var c = 0; c < track.clips.numItems; c++) {
+        var ci = track.clips[c];
+        if (ci.start.seconds < b - 1e-4 && ci.end.seconds > a + 1e-4) return false;
+    }
+    return true;
+}
+/* every unlocked track that can close the gap [a, b] without hitting anything (Premiere ripple delete style) */
+function et_rippleLocs(seq, targets, a, b) {
+    var locs = targets.slice(), have = {}, groups = [seq.videoTracks, seq.audioTracks];
+    for (var i = 0; i < targets.length; i++) have[(targets[i].video ? "v" : "a") + targets[i].track] = 1;
+    for (var g = 0; g < 2; g++)
+        for (var t = 0; t < groups[g].numTracks; t++) {
+            var k = (g === 0 ? "v" : "a") + t;
+            if (have[k] || et_locked(groups[g][t])) continue;
+            if (et_trackFree(groups[g][t], a, b)) locs.push({ video: g === 0, track: t });
+        }
+    return locs;
+}
+function et_deleteSide(left) {
+    var seq = et_seq(), t = et_now(seq), locs = et_cutTargets(seq);
+    et_razorTracks(seq, locs);
+
+    // 1. remove the piece on each target track and note where the gap will close to
+    var edge = left ? 0 : Infinity, n = 0, i, c;
+    for (i = 0; i < locs.length; i++) {
+        var tr = et_track(seq, locs[i]);
+        for (c = 0; c < tr.clips.numItems; c++) {
+            var ci = tr.clips[c];
+            if (left ? Math.abs(ci.end.seconds - t) < ET_EPS : Math.abs(ci.start.seconds - t) < ET_EPS) {
+                ci.remove(false, true);
                 n++;
                 break;
             }
         }
     }
     if (!n) throw "Nothing to delete at the playhead.";
-    // after a ripple delete on the left, the rest of the clip starts where the removed part began
-    if (left) seq.setPlayerPosition(String(Math.round(land * ET_TICKS)));
-    return left ? "Deleted left of playhead" : "Deleted right of playhead";
+
+    // 2. the gap runs from the previous clip's end (left) or up to the next clip's start (right)
+    for (i = 0; i < locs.length; i++) {
+        var tr2 = et_track(seq, locs[i]);
+        for (c = 0; c < tr2.clips.numItems; c++) {
+            var x = tr2.clips[c];
+            if (left && x.end.seconds <= t + 1e-4) edge = Math.max(edge, x.end.seconds);
+            if (!left && x.start.seconds >= t - 1e-4) edge = Math.min(edge, x.start.seconds);
+        }
+    }
+    var gapA = left ? edge : t, gapB = left ? t : edge;
+    if (gapB === Infinity || gapB - gapA < 1e-4) return left ? "Deleted left of playhead" : "Deleted right of playhead";
+
+    // 3. ripple: pull everything after the gap back, on every track that is clear across it
+    et_shiftAfter(seq, et_rippleLocs(seq, locs, gapA, gapB), gapB, -(gapB - gapA));
+    seq.setPlayerPosition(String(Math.round(gapA * ET_TICKS)));
+    return left ? "Deleted left and closed the gap" : "Deleted right and closed the gap";
 }
 ET.delleft = function () { return et_deleteSide(true); };
 ET.delright = function () { return et_deleteSide(false); };
@@ -476,17 +571,7 @@ ET.freeze = function () {
         for (tr = 0; tr < groups[g].numTracks; tr++)
             if (!et_locked(groups[g][tr])) all.push({ video: g === 0, track: tr });
     et_razorTracks(seq, all);
-    var later = [];
-    for (g = 0; g < 2; g++)
-        for (tr = 0; tr < groups[g].numTracks; tr++) {
-            if (et_locked(groups[g][tr])) continue;
-            for (c = 0; c < groups[g][tr].clips.numItems; c++)
-                if (groups[g][tr].clips[c].start.seconds >= t - 1e-4) later.push(groups[g][tr].clips[c]);
-        }
-    later.sort(function (a, b) { return b.start.seconds - a.start.seconds; });
-    var shift = new Time();
-    shift.seconds = hold;
-    for (c = 0; c < later.length; c++) later[c].move(shift);
+    et_shiftAfter(seq, all, t, hold);
 
     // 3. drop the still into the gap
     et_track(seq, loc).overwriteClip(still, t);
