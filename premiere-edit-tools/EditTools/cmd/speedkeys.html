@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Edit Tools: Speed Ramp Keys</title>
+  <style>
+    [hidden] { display: none !important; }
+    html, body { margin: 0; background: #1e1e1e; color: #ddd; font: 12px "Segoe UI", -apple-system, Arial, sans-serif; }
+    body { padding: 10px 12px; }
+    #msg.err { color: #fca5a5; }
+    #pick { display: flex; gap: 6px; margin-top: 8px; }
+    #pick button { flex: 1; background: #2a3a52; color: #cfe2ff; border: 1px solid #4b6a93; border-radius: 5px; padding: 5px 0; font: inherit; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="msg">Speed Ramp Keys…</div>
+  <div id="pick" hidden>
+    <button data-v="in">1 · Fade in</button><button data-v="out">2 · Fade out</button><button data-v="both">3 · Both</button>
+  </div>
+  <script>window.ET_CMD = "speedkeys";</script>
+  <script src="../tools.js"></script>
+  <script src="../cmd.js"></script>
+</body>
+</html>

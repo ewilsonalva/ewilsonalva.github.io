@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Edit Tools</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav id="bar" class="bar"></nav>
+  <div id="menu" class="menu" hidden></div>
+  <div id="tip" class="tip" hidden></div>
+  <div id="status" class="status" hidden></div>
+
+  <section id="keys" class="keys" hidden>
+    <header><b>Shortcuts</b><button id="keysClose" class="x">✕</button></header>
+    <p>Set these once in Premiere: <b>Edit ▸ Keyboard Shortcuts</b> (Mac: <b>Premiere Pro ▸ Keyboard Shortcuts</b>), search <b>Edit Tools</b> and press the key on each row. They then work anywhere in Premiere, including the Timeline.</p>
+    <table id="keyTable"></table>
+    <p class="note">Changing a key here only updates the hover labels and the keys that work while this panel is focused. Set the same key in Premiere so it works everywhere.</p>
+  </section>
+
+  <script src="tools.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>
