@@ -1,6 +1,6 @@
 # SFX Library: a Premiere Pro panel
 
-A panel for Premiere Pro 2026 (it also works back to 2021). It holds **180 sound effects and meme audios** sliced from 5 source videos, sorted into folders. You can search them, preview them, and press **Apply** to drop one onto your sequence **at the playhead** in one click.
+A panel for Premiere Pro 2026 (it also works back to 2021). It holds **181 sound effects and meme audios** sliced from 5 source videos, sorted into folders. You can search them, preview them, and press **Apply** to drop one onto your sequence **at the playhead** in one click.
 
 ![Panel](screenshot.png)
 
@@ -23,7 +23,13 @@ The installer copies `SFXLibrary` into Adobe's CEP extensions folder. It also tu
 
 ## Adding your own sounds
 
-Put MP3/WAV files in `SFXLibrary/sounds/<Folder>/`. Then add an entry for each one to `SFXLibrary/library.js`, following the same format as the existing entries.
+1. Click **＋** in the top-right corner of the panel.
+2. Click **Choose audio files…** and pick one or more files (MP3, WAV, AIFF, M4A, AAC, OGG or FLAC).
+3. Rename them if you like, choose a folder (or **＋ New folder…**), and click **Add to library**.
+
+Added sounds are copied into your own library folder, so reinstalling or updating the plugin never removes them:
+Windows `%APPDATA%\SFXLibrary`, Mac `~/Library/Application Support/SFXLibrary`.
+Sounds you added have a 🗑 button to remove them again.
 
 ## Sound list
 
@@ -31,9 +37,9 @@ Put MP3/WAV files in `SFXLibrary/sounds/<Folder>/`. Then add an entry for each o
 
 Surprised, Click, Bone Crack, Boom, Throw, Woaaaah, Window Break, Whoosh, Slap, Glitch, Clock Ticking, Kids Yeyy, Mario Coin, Surprised 2, Surprised 3, Display Digits, Pop, Discord Join, Game Point, Let's Go, Wrong Answer, Shotgun, Reload, Ding, Help Me
 
-### Meme Sounds (21), from “Top 20 Viral Meme Sound Effects (2026)”
+### Meme Sounds (22), from “Top 20 Viral Meme Sound Effects (2026)”
 
-Violin Speech, I've Got This FAAAH, The Undertaker Bell, Vine Boom, Are You Sure - Omni Man, Lego Die, Among Us Role Reveal, A Few Moments Later, Fortnite Death, Disappear Scream, Screaming Emoji, Where Are You Going, SpongeBob Fail, Loading Lost Connection, YEET, Flash Bang, Disappear, Ayo, Apple Pay, Lobotomy, Anime Wow
+Violin Speech, I've Got This FAAAH, The Undertaker Bell, Vine Boom, Are You Sure - Omni Man, Lego Die, Among Us Role Reveal, A Few Moments Later, Fortnite Death, Disappear Scream, Screaming Emoji, Where Are You Going, SpongeBob Fail, Loading Lost Connection, YEET, Flash Bang, Disappear, Ayo, Apple Pay, Lobotomy, Anime Wow, Ultra Instinct Theme
 
 ### Editing SFX (35), from “Editing Sound Effects Pack”
 

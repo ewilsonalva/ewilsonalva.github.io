@@ -10,6 +10,7 @@
     play: '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg>',
     stop: '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>',
     star: '<svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg>',
+    trash: '<svg viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>',
     chev: '<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
     all: '<svg viewBox="0 0 24 24"><path d="M3 7h18M3 12h18M3 17h18"/></svg>',
     bolt: '<svg viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
@@ -21,9 +22,11 @@
 
   var catByName = {};
   LIB.categories.forEach(function (c) { catByName[c.name] = c; });
-  LIB.sounds.forEach(function (s) {
-    s.haystack = [s.name, s.category, catByName[s.category].source, s.tags, s.quote].join(" ").toLowerCase();
-  });
+  function indexSound(s) {
+    var c = catByName[s.category];
+    s.haystack = [s.name, s.category, c ? c.source : "", s.tags, s.quote].join(" ").toLowerCase();
+  }
+  LIB.sounds.forEach(indexSound);
 
   // ---------- small helpers ----------
   function $(id) { return document.getElementById(id); }
@@ -48,9 +51,14 @@
   }
   var EXT = extensionPath();
   function soundPath(s) {
-    var p = EXT + "/sounds/" + s.file;
+    var p = s.user ? s.path : EXT + "/sounds/" + s.file;
     return isWin ? p.replace(/\//g, "\\") : p;
   }
+
+  function fileUrl(path) {
+    return "file:///" + encodeURI(String(path).replace(/\\/g, "/").replace(/^\/+/, "")).replace(/#/g, "%23");
+  }
+  function extOf(s) { return ((/\.([^.\\/]+)$/.exec(s.user ? s.path : s.file) || [])[1] || "mp3").toUpperCase(); }
 
   function evalHost(script, cb) {
     if (!CEP) { cb("error|Not running inside Premiere Pro."); return; }
@@ -79,7 +87,8 @@
     var c = catByName[s.category];
     return '<div class="sound" data-id="' + esc(s.id) + '" title="' + esc(s.quote || s.name) + '">' +
       '<div class="tile" style="background:' + tint(c.color, 0.18) + ';color:' + c.color + '">' + ICONS.speaker + "</div>" +
-      '<div class="meta"><div class="name">' + esc(s.name) + '</div><div class="sub">' + esc(s.category) + " • MP3 • " + fmtDur(s.duration) + "</div></div>" +
+      '<div class="meta"><div class="name">' + esc(s.name) + '</div><div class="sub">' + esc(s.category) + " • " + extOf(s) + " • " + fmtDur(s.duration) + "</div></div>" +
+      (s.user ? '<button class="trash" data-act="del" title="Remove from library">' + ICONS.trash + "</button>" : "") +
       '<button class="star' + (favs[s.id] ? " on" : "") + '" data-act="fav" title="Favorite">' + ICONS.star + "</button>" +
       '<button class="play" data-act="play" title="Preview">' + ICONS.play + "</button>" +
       '<button class="apply" data-act="apply" title="Place at the playhead">Apply</button>' +
@@ -171,7 +180,7 @@
   function togglePreview(row, s) {
     if (playingRow === row) { stopPreview(); return; }
     stopPreview();
-    audio.src = "sounds/" + s.file;
+    audio.src = s.user ? fileUrl(s.path) : "sounds/" + s.file;
     audio.currentTime = 0;
     var p = audio.play();
     if (p && p.catch) p.catch(function () { toast("Could not play " + s.name, true); stopPreview(); });
@@ -229,6 +238,7 @@
     var act = btn ? btn.getAttribute("data-act") : "play";
     if (act === "play") togglePreview(row, s);
     else if (act === "apply") apply(row, s);
+    else if (act === "del") removeUserSound(s);
     else if (act === "fav") {
       if (favs[s.id]) delete favs[s.id]; else favs[s.id] = 1;
       store("favs", favs);
@@ -259,6 +269,132 @@
   moveChk.addEventListener("change", function () { store("move", moveChk.checked); });
   vol.addEventListener("input", function () { audio.volume = +vol.value; store("vol", +vol.value); });
 
+  // ---------- your own sounds ----------
+  var USER_COLORS = ["#fb923c", "#22d3ee", "#e879f9", "#a3e635", "#f87171", "#818cf8"];
+  var userLib = { categories: [], sounds: [] };
+
+  function addCategory(name) {
+    if (catByName[name]) return;
+    var c = { name: name, color: USER_COLORS[userLib.categories.length % USER_COLORS.length], source: "Your sounds", icon: "music", user: true };
+    userLib.categories.push(c);
+    LIB.categories.push(c);
+    catByName[name] = c;
+  }
+  function mergeUserSound(s) {
+    s.user = true;
+    LIB.sounds.push(s);
+    indexSound(s);
+  }
+  function saveUserLib(cb) {
+    var data = JSON.stringify({ categories: userLib.categories, sounds: userLib.sounds.map(function (s) {
+      return { id: s.id, name: s.name, category: s.category, path: s.path, duration: s.duration, tags: s.tags || "", quote: "" };
+    }) });
+    evalHost("sfx_writeUserLib(" + JSON.stringify(data) + ")", cb || function () {});
+  }
+  function loadUserLib() {
+    evalHost("sfx_readUserLib()", function (res) {
+      if (!res || res.indexOf("error|") === 0) return;
+      try {
+        var d = JSON.parse(res);
+        (d.categories || []).forEach(function (c) { addCategory(c.name); });
+        (d.sounds || []).forEach(function (s) { userLib.sounds.push(s); mergeUserSound(s); });
+        render();
+      } catch (e) {}
+    });
+  }
+  function removeUserSound(s) {
+    if (!window.confirm("Remove “" + s.name + "” from the library?")) return;
+    LIB.sounds.splice(LIB.sounds.indexOf(s), 1);
+    userLib.sounds = userLib.sounds.filter(function (x) { return x.id !== s.id; });
+    evalHost("sfx_deleteFile(" + JSON.stringify(s.path) + ")", function () {});
+    saveUserLib();
+    render();
+    toast("Removed " + s.name);
+  }
+
+  var addView = $("addView"), addList = $("addList"), addForm = $("addForm");
+  var addFolder = $("addFolder"), newFolderRow = $("newFolderRow"), newFolder = $("newFolder");
+  var pending = [];      // [{ path, name, duration }]
+
+  function openAdd() {
+    stopPreview();
+    pending = [];
+    addList.innerHTML = "";
+    addForm.hidden = true;
+    var def = state.folder && catByName[state.folder] ? state.folder : "Meme Sounds";
+    addFolder.innerHTML = LIB.categories.map(function (c) {
+      return '<option' + (c.name === def ? " selected" : "") + ">" + esc(c.name) + "</option>";
+    }).join("") + '<option value="__new">＋ New folder…</option>';
+    newFolderRow.hidden = true;
+    newFolder.value = "";
+    addView.hidden = false;
+  }
+  function baseName(p) { return String(p).replace(/^.*[\\\/]/, "").replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim(); }
+  function titleCase(t) { return t.replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
+  function probeDuration(item) {
+    var a = new Audio();
+    a.preload = "metadata";
+    a.onloadedmetadata = function () { item.duration = a.duration || 0; drawPending(); };
+    a.src = fileUrl(item.path);
+  }
+  function drawPending() {
+    addList.innerHTML = pending.map(function (p, i) {
+      return '<div class="add-row"><input data-i="' + i + '" value="' + esc(p.name) + '" title="Sound name">' +
+        '<span class="dur">' + (p.duration ? fmtDur(p.duration) : "…") + "</span></div>";
+    }).join("");
+    addForm.hidden = !pending.length;
+  }
+  $("add").addEventListener("click", openAdd);
+  $("addBack").addEventListener("click", function () { addView.hidden = true; });
+  $("pick").addEventListener("click", function () {
+    evalHost("sfx_pickFiles()", function (res) {
+      if (!res || res.indexOf("error|") === 0) { if (res) toast(res.slice(6), true); return; }
+      res.split("\n").forEach(function (p) {
+        if (!p) return;
+        var item = { path: p, name: titleCase(baseName(p)), duration: 0 };
+        pending.push(item);
+        probeDuration(item);
+      });
+      drawPending();
+    });
+  });
+  addList.addEventListener("input", function (e) {
+    var i = e.target.getAttribute("data-i");
+    if (i != null) pending[+i].name = e.target.value;
+  });
+  addFolder.addEventListener("change", function () {
+    newFolderRow.hidden = addFolder.value !== "__new";
+    if (!newFolderRow.hidden) newFolder.focus();
+  });
+  $("save").addEventListener("click", function () {
+    var folder = addFolder.value === "__new" ? newFolder.value.trim() : addFolder.value;
+    if (!folder) { toast("Give the new folder a name.", true); return; }
+    addCategory(folder);
+    var todo = pending.slice(), added = 0;
+    (function next() {
+      var p = todo.shift();
+      if (!p) {
+        saveUserLib();
+        addView.hidden = true;
+        state.folder = folder; state.query = ""; q.value = "";
+        render();
+        toast("Added " + added + " sound" + (added === 1 ? "" : "s") + " to " + folder);
+        return;
+      }
+      var name = p.name.trim() || baseName(p.path);
+      evalHost("sfx_importSound(" + JSON.stringify(p.path) + "," + JSON.stringify(folder) + "," + JSON.stringify(name) + ")", function (res) {
+        var r = res.split("|");
+        if (r[0] === "ok") {
+          var s = { id: "user/" + Date.now() + "_" + added, name: name, category: folder, path: r.slice(1).join("|"), duration: Math.round((p.duration || 1) * 100) / 100, tags: "" };
+          userLib.sounds.push(s);
+          mergeUserSound(s);
+          added++;
+        } else toast(r.slice(1).join("|"), true);
+        next();
+      });
+    })();
+  });
+
   // show the active sequence name so it is clear where Apply will go
   function refreshSeq() {
     evalHost("sfx_ping()", function (res) {
@@ -266,7 +402,7 @@
       $("seq").textContent = p[0] === "ok" ? p[1] : "";
     });
   }
-  if (CEP) { refreshSeq(); setInterval(refreshSeq, 3000); }
+  if (CEP) { refreshSeq(); setInterval(refreshSeq, 3000); loadUserLib(); }
 
   render();
 })();

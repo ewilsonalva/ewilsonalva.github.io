@@ -448,6 +448,15 @@ window.SFX_LIBRARY = {
    "id": "Meme_Sounds/Anime_Wow"
   },
   {
+   "name": "Ultra Instinct Theme",
+   "category": "Meme Sounds",
+   "file": "Meme_Sounds/Ultra_Instinct_Theme.mp3",
+   "duration": 7.11,
+   "tags": "dragon ball goku anime epic power up music",
+   "quote": "",
+   "id": "Meme_Sounds/Ultra_Instinct_Theme"
+  },
+  {
    "name": "Explosion",
    "category": "Editing SFX",
    "file": "Editing_SFX/Explosion.mp3",

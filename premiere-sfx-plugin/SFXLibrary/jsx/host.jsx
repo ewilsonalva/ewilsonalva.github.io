@@ -108,3 +108,78 @@ function sfx_apply(path, duration, preferredTrack, movePlayhead) {
 function sfx_ping() {
     return app.project && app.project.activeSequence ? "ok|" + app.project.activeSequence.name : "ok|";
 }
+
+/* ---------- your own sounds ----------
+ * Added sounds are copied into a personal folder (Documents-level app data,
+ * outside the plugin) so reinstalling or updating the plugin never loses them.
+ *   Windows: %APPDATA%\SFXLibrary     Mac: ~/Library/Application Support/SFXLibrary
+ */
+function sfx_userDir() {
+    var d = new Folder(Folder.userData.fsName + "/SFXLibrary");
+    if (!d.exists) d.create();
+    return d;
+}
+
+function sfx_isAudio(f) {
+    return f instanceof Folder || /\.(mp3|wav|aif|aiff|m4a|aac|ogg|flac)$/i.test(f.name);
+}
+
+/* file picker; returns one absolute path per line */
+function sfx_pickFiles() {
+    var filter = $.os.indexOf("Windows") >= 0
+        ? "Audio files:*.mp3;*.wav;*.aif;*.aiff;*.m4a;*.aac;*.ogg;*.flac,All files:*.*"
+        : sfx_isAudio;
+    var picked = File.openDialog("Choose sound effects to add", filter, true);
+    if (!picked) return "";
+    if (!(picked instanceof Array)) picked = [picked];
+    var out = [];
+    for (var i = 0; i < picked.length; i++) out.push(picked[i].fsName);
+    return out.join("\n");
+}
+
+function sfx_safeName(s) {
+    return String(s).replace(/[\\\/:*?"<>|]+/g, " ").replace(/^\s+|\s+$/g, "") || "Sound";
+}
+
+/* copy one file into <userDir>/sounds/<folder>/<name>.<ext>; returns "ok|<new path>" */
+function sfx_importSound(srcPath, folder, name) {
+    try {
+        var src = new File(srcPath);
+        if (!src.exists) return "error|File not found: " + srcPath;
+        var ext = (/\.[^.]+$/.exec(src.name) || [".mp3"])[0].toLowerCase();
+        var dir = new Folder(sfx_userDir().fsName + "/sounds/" + sfx_safeName(folder));
+        if (!dir.exists) dir.create();
+        var base = sfx_safeName(name), dest = new File(dir.fsName + "/" + base + ext), n = 2;
+        while (dest.exists) dest = new File(dir.fsName + "/" + base + " " + (n++) + ext);
+        if (!src.copy(dest.fsName)) return "error|Could not copy " + src.name;
+        return "ok|" + dest.fsName;
+    } catch (e) {
+        return "error|" + e.toString();
+    }
+}
+
+function sfx_deleteFile(path) {
+    var f = new File(path);
+    if (f.exists) f.remove();
+    return "ok|";
+}
+
+/* the list of added sounds is stored as JSON text written by the panel */
+function sfx_readUserLib() {
+    var f = new File(sfx_userDir().fsName + "/library.json");
+    if (!f.exists) return "";
+    f.encoding = "UTF-8";
+    f.open("r");
+    var s = f.read();
+    f.close();
+    return s;
+}
+
+function sfx_writeUserLib(text) {
+    var f = new File(sfx_userDir().fsName + "/library.json");
+    f.encoding = "UTF-8";
+    f.open("w");
+    f.write(text);
+    f.close();
+    return "ok|";
+}

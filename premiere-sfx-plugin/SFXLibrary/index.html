@@ -13,6 +13,9 @@
       </button>
       <h1 id="title">Library</h1>
       <span id="seq" class="seq" title="Active sequence"></span>
+      <button id="add" class="icon-btn" title="Add your own sounds">
+        <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      </button>
     </div>
     <label class="search">
       <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
@@ -43,6 +46,27 @@
       <input id="vol" type="range" min="0" max="1" step="0.05" value="0.8">
     </label>
   </footer>
+
+  <section id="addView" class="add" hidden>
+    <div class="add-head">
+      <button id="addBack" class="icon-btn" title="Cancel">
+        <svg viewBox="0 0 24 24"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>
+      </button>
+      <h2>Add sounds</h2>
+    </div>
+    <button id="pick" class="pick">Choose audio files…</button>
+    <p class="hint">MP3, WAV, AIFF, M4A, AAC, OGG or FLAC. Files are copied into your own library folder, so updating the plugin never removes them.</p>
+    <div id="addList"></div>
+    <div id="addForm" hidden>
+      <label class="field">Folder
+        <select id="addFolder"></select>
+      </label>
+      <label id="newFolderRow" class="field" hidden>New folder name
+        <input id="newFolder" type="text" placeholder="e.g. My Memes">
+      </label>
+      <button id="save" class="apply wide">Add to library</button>
+    </div>
+  </section>
 
   <div id="toast" class="toast" role="status"></div>
 
