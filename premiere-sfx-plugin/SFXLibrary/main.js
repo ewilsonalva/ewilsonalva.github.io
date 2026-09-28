@@ -43,15 +43,15 @@
   }
   function fmtDur(d) { return d < 60 ? d.toFixed(1) + "s" : Math.floor(d / 60) + ":" + ("0" + Math.round(d % 60)).slice(-2); }
 
-  function extensionPath() {
+  function systemPath(type) {
     if (!CEP) return "";
-    var p = decodeURI(CEP.getSystemPath("extension"));
+    var p = decodeURI(CEP.getSystemPath(type));
     p = isWin ? p.replace("file:///", "") : p.replace("file://", "");
-    return p;
+    return p.replace(/\\/g, "/").replace(/\/$/, "");
   }
-  var EXT = extensionPath();
+  var EXT = systemPath("extension");
   function soundPath(s) {
-    var p = s.user ? s.path : EXT + "/sounds/" + s.file;
+    var p = s.user ? s.path.replace(/\\/g, "/") : EXT + "/sounds/" + s.file;
     return isWin ? p.replace(/\//g, "\\") : p;
   }
 
@@ -62,7 +62,12 @@
 
   function evalHost(script, cb) {
     if (!CEP) { cb("error|Not running inside Premiere Pro."); return; }
-    CEP.evalScript(script, function (res) { cb(String(res)); });
+    CEP.evalScript(script, function (res) {
+      res = String(res);
+      // CEP's answer when the script threw or the function isn't loaded
+      if (res === "EvalScript error.") res = "error|Premiere's script engine refused the request. Restart Premiere Pro and try again.";
+      cb(res);
+    });
   }
 
   // ---------- state ----------
@@ -285,15 +290,86 @@
     LIB.sounds.push(s);
     indexSound(s);
   }
+  // Your sounds live in <app data>/SFXLibrary (Windows: %APPDATA%\\SFXLibrary).
+  // File work goes through CEP's own file access (window.cep.fs); the ExtendScript
+  // versions in host.jsx are only used when that isn't available.
+  var FS = window.cep && window.cep.fs;
+  var ENC = window.cep && window.cep.encoding;
+  var USERDIR = CEP ? systemPath("userData") + "/SFXLibrary" : "";
+  var LIBFILE = USERDIR + "/library.json";
+
+  function fsOk(r) { return r && r.err === 0; }
+  function fsExists(p) { return fsOk(FS.stat(p)); }
+  function fsMkdirs(p) {
+    var parts = p.split("/"), cur = "";
+    for (var i = 0; i < parts.length; i++) {
+      cur += (i ? "/" : "") + parts[i];
+      if (cur && !/^[A-Za-z]:$/.test(cur) && !fsExists(cur)) FS.makedir(cur);
+    }
+  }
+  function safeName(n) { return String(n).replace(/[\\\/:*?"<>|]+/g, " ").trim() || "Sound"; }
+
+  function pickFiles(cb) {
+    if (FS && FS.showOpenDialogEx) {
+      var r = FS.showOpenDialogEx(true, false, "Choose sound effects to add", "",
+        ["mp3", "wav", "aif", "aiff", "m4a", "aac", "ogg", "flac"], "Audio files");
+      if (fsOk(r)) { cb(r.data || []); return; }
+    } else if (FS && FS.showOpenDialog) {
+      var r2 = FS.showOpenDialog(true, false, "Choose sound effects to add", "", ["mp3", "wav", "aif", "aiff", "m4a", "aac", "ogg", "flac"]);
+      if (fsOk(r2)) { cb(r2.data || []); return; }
+    }
+    evalHost("sfx_pickFiles()", function (res) {
+      if (res.indexOf("error|") === 0) { cb([], res.slice(6)); return; }
+      cb(res ? res.split("\n") : []);
+    });
+  }
+
+  function importFile(src, folder, name, cb) {
+    if (FS) {
+      var ext = (/\.[^.\\\/]+$/.exec(src) || [".mp3"])[0].toLowerCase();
+      var dir = USERDIR + "/sounds/" + safeName(folder);
+      fsMkdirs(dir);
+      var base = safeName(name), dest = dir + "/" + base + ext, n = 2;
+      while (fsExists(dest)) dest = dir + "/" + base + " " + (n++) + ext;
+      var data = FS.readFile(src, ENC.Base64);
+      if (fsOk(data) && fsOk(FS.writeFile(dest, data.data, ENC.Base64))) { cb(null, dest); return; }
+    }
+    evalHost("sfx_importSound(" + JSON.stringify(src) + "," + JSON.stringify(folder) + "," + JSON.stringify(name) + ")", function (res) {
+      var r = res.split("|");
+      if (r[0] === "ok") cb(null, r.slice(1).join("|"));
+      else cb(r.slice(1).join("|") || "Could not copy " + baseName(src));
+    });
+  }
+
+  function readLibText(cb) {
+    if (FS) {
+      var r = FS.readFile(LIBFILE, ENC.UTF8);
+      if (fsOk(r)) { cb(r.data); return; }
+      if (!fsExists(USERDIR)) { cb(""); return; }
+    }
+    evalHost("sfx_readUserLib()", function (res) { cb(res.indexOf("error|") === 0 ? "" : res); });
+  }
+  function writeLibText(text, cb) {
+    if (FS) {
+      fsMkdirs(USERDIR);
+      if (fsOk(FS.writeFile(LIBFILE, text, ENC.UTF8))) { if (cb) cb("ok|"); return; }
+    }
+    evalHost("sfx_writeUserLib(" + JSON.stringify(text) + ")", cb || function () {});
+  }
+  function deleteFile(path) {
+    if (FS && fsOk(FS.deleteFile(path))) return;
+    evalHost("sfx_deleteFile(" + JSON.stringify(path) + ")", function () {});
+  }
+
   function saveUserLib(cb) {
     var data = JSON.stringify({ categories: userLib.categories, sounds: userLib.sounds.map(function (s) {
       return { id: s.id, name: s.name, category: s.category, path: s.path, duration: s.duration, tags: s.tags || "", quote: "" };
     }) });
-    evalHost("sfx_writeUserLib(" + JSON.stringify(data) + ")", cb || function () {});
+    writeLibText(data, cb);
   }
   function loadUserLib() {
-    evalHost("sfx_readUserLib()", function (res) {
-      if (!res || res.indexOf("error|") === 0) return;
+    readLibText(function (res) {
+      if (!res) return;
       try {
         var d = JSON.parse(res);
         (d.categories || []).forEach(function (c) { addCategory(c.name); });
@@ -306,7 +382,7 @@
     if (!window.confirm("Remove “" + s.name + "” from the library?")) return;
     LIB.sounds.splice(LIB.sounds.indexOf(s), 1);
     userLib.sounds = userLib.sounds.filter(function (x) { return x.id !== s.id; });
-    evalHost("sfx_deleteFile(" + JSON.stringify(s.path) + ")", function () {});
+    deleteFile(s.path);
     saveUserLib();
     render();
     toast("Removed " + s.name);
@@ -347,9 +423,9 @@
   $("add").addEventListener("click", openAdd);
   $("addBack").addEventListener("click", function () { addView.hidden = true; });
   $("pick").addEventListener("click", function () {
-    evalHost("sfx_pickFiles()", function (res) {
-      if (!res || res.indexOf("error|") === 0) { if (res) toast(res.slice(6), true); return; }
-      res.split("\n").forEach(function (p) {
+    pickFiles(function (paths, err) {
+      if (err) { toast(err, true); return; }
+      paths.forEach(function (p) {
         if (!p) return;
         var item = { path: p, name: titleCase(baseName(p)), duration: 0 };
         pending.push(item);
@@ -378,18 +454,18 @@
         addView.hidden = true;
         state.folder = folder; state.query = ""; q.value = "";
         render();
+        list.scrollTop = list.scrollHeight;     // new sounds are at the end of the folder
         toast("Added " + added + " sound" + (added === 1 ? "" : "s") + " to " + folder);
         return;
       }
       var name = p.name.trim() || baseName(p.path);
-      evalHost("sfx_importSound(" + JSON.stringify(p.path) + "," + JSON.stringify(folder) + "," + JSON.stringify(name) + ")", function (res) {
-        var r = res.split("|");
-        if (r[0] === "ok") {
-          var s = { id: "user/" + Date.now() + "_" + added, name: name, category: folder, path: r.slice(1).join("|"), duration: Math.round((p.duration || 1) * 100) / 100, tags: "" };
+      importFile(p.path, folder, name, function (err, dest) {
+        if (!err) {
+          var s = { id: "user/" + Date.now() + "_" + added, name: name, category: folder, path: dest, duration: Math.round((p.duration || 1) * 100) / 100, tags: "" };
           userLib.sounds.push(s);
           mergeUserSound(s);
           added++;
-        } else toast(r.slice(1).join("|"), true);
+        } else toast(err, true);
         next();
       });
     })();
@@ -402,7 +478,14 @@
       $("seq").textContent = p[0] === "ok" ? p[1] : "";
     });
   }
-  if (CEP) { refreshSeq(); setInterval(refreshSeq, 3000); loadUserLib(); }
+  if (CEP) {
+    // Premiere keeps the first-loaded host.jsx until restart; load the installed one again
+    evalHost("$.evalFile(" + JSON.stringify(EXT + "/jsx/host.jsx") + ")", function () {
+      refreshSeq();
+      setInterval(refreshSeq, 3000);
+    });
+    loadUserLib();
+  }
 
   render();
 })();

@@ -84,7 +84,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .vol input { width: 70px; }
 .bottom { flex-wrap: nowrap; } .opt select { max-width: 110px; }
 
-.toast { position: fixed; left: 50%; bottom: 54px; transform: translateX(-50%) translateY(10px); background: #111; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 12px; opacity: 0; pointer-events: none; transition: .2s; max-width: 90%; }
+.toast { z-index: 50; position: fixed; left: 50%; bottom: 54px; transform: translateX(-50%) translateY(10px); background: #111; border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; font-size: 12px; opacity: 0; pointer-events: none; transition: .2s; max-width: 90%; }
 .toast.show { opacity: 1; transform: translateX(-50%); }
 .toast.ok { border-color: #2f7a4a; }
 .toast.err { border-color: #7a2f2f; color: #fecaca; }
