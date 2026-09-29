@@ -1,0 +1,373 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated: one docked toolbar panel plus one small command per tool.
+     The commands appear under Window > Extensions, so each can get a Premiere keyboard shortcut. -->
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.ewilsonalva.edittools" ExtensionBundleVersion="1.0.0" ExtensionBundleName="Edit Tools" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ExtensionList>
+    <Extension Id="com.ewilsonalva.edittools.panel" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.split" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.delleft" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.delright" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.link" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.unlink" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.freeze" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.reverse" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.mirror" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.rotate" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.fill" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.fullkey" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.clearkeys" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.speedkeys" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.transition" Version="1.0.0" />
+    <Extension Id="com.ewilsonalva.edittools.crossfade" Version="1.0.0" />
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <Host Name="PPRO" Version="[15.0,99.9]" />
+    </HostList>
+    <LocaleList>
+      <Locale Code="All" />
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="9.0" />
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="com.ewilsonalva.edittools.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./index.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>Edit Tools</Menu>
+          <Geometry>
+            <Size><Height>560</Height><Width>48</Width></Size>
+            <MinSize><Height>60</Height><Width>40</Width></MinSize>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.split">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/split.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Split</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.delleft">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/delleft.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Delete Left</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.delright">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/delright.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Delete Right</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.link">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/link.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Link</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.unlink">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/unlink.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Unlink</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.freeze">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/freeze.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Freeze</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.reverse">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/reverse.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Reverse</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.mirror">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/mirror.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Mirror</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.rotate">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/rotate.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Rotate 90°</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.fill">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/fill.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Fit to Frame</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.fullkey">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/fullkey.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Full Keyframes</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.clearkeys">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/clearkeys.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Clear Keys</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.speedkeys">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/speedkeys.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Speed Ramp Keys</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.transition">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/transition.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Quick Transition</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+    <Extension Id="com.ewilsonalva.edittools.crossfade">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./cmd/crossfade.html</MainPath>
+          <ScriptPath>./jsx/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--allow-file-access-from-files</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Modeless</Type>
+          <Menu>Edit Tools: Audio Crossfade</Menu>
+          <Geometry>
+            <Size><Height>70</Height><Width>300</Width></Size>
+          </Geometry>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>

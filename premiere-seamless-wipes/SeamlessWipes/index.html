@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Seamless Wipes</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Seamless Wipes</h1>
+    <p>Park the playhead near a cut, then click a direction.</p>
+  </header>
+
+  <section class="row">
+    <span class="label">Speed</span>
+    <div class="seg" id="speed">
+      <button data-v="fast">Fast<small>0.6s</small></button>
+      <button data-v="medium">Medium<small>1.0s</small></button>
+      <button data-v="slow">Slow<small>1.6s</small></button>
+    </div>
+  </section>
+
+  <section class="row">
+    <span class="label">Sound</span>
+    <div class="sound">
+      <select id="sound"></select>
+      <button id="preview" class="icon" title="Preview sound">
+        <svg viewBox="0 0 24 24"><path d="M7 4.5v15l12-7.5z"/></svg>
+      </button>
+    </div>
+  </section>
+
+  <div class="pad" id="pad"></div>
+
+  <section class="row layer">
+    <label><input type="checkbox" id="useLayer" checked> Use an adjustment layer</label>
+    <span id="layerState" class="state"></span>
+  </section>
+
+  <div id="status" class="status" hidden></div>
+
+  <script src="sounds.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

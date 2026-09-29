@@ -1,0 +1,44 @@
+[hidden] { display: none !important; }
+:root { --bg: #1e1e1e; --tile: #2a2a2a; --line: #3a3a3a; --text: #e8e8e8; --muted: #9a9a9a; --accent: #7cb3ff; --accent-bg: #2a3a52; --ok: #3ecf8e; --err: #ef6b6b; }
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 12px/1.35 "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; padding: 12px 12px 70px; user-select: none; }
+h1 { margin: 0; font-size: 15px; }
+header p { margin: 3px 0 12px; color: var(--muted); }
+svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+.row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.label { width: 42px; color: var(--muted); flex: none; }
+.seg { display: flex; flex: 1; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+.seg button { flex: 1; background: none; border: 0; color: var(--muted); padding: 6px 0; font: inherit; cursor: pointer; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button small { display: block; font-size: 10px; opacity: .7; }
+.seg button.on { background: var(--accent-bg); color: #cfe2ff; }
+.sound { display: flex; flex: 1; gap: 6px; min-width: 0; }
+.sound select { flex: 1; min-width: 0; background: #1a1a1a; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px; font: inherit; }
+.icon { width: 32px; flex: none; border: 1px solid var(--line); border-radius: 6px; background: none; color: var(--text); display: grid; place-items: center; cursor: pointer; }
+.icon svg { width: 14px; height: 14px; }
+.icon.playing { color: var(--accent); border-color: var(--accent); }
+
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px auto 12px; max-width: 280px; }
+.wipe { position: relative; aspect-ratio: 1.6; border: 1px solid var(--line); border-radius: 10px; background: var(--tile); color: var(--text); cursor: pointer; display: grid; place-items: center; overflow: hidden; }
+.wipe:hover { border-color: #5a5a5a; background: #313131; }
+.wipe:active { transform: scale(.96); }
+.wipe.busy { color: var(--accent); }
+.wipe.ok { border-color: #2c6b4f; color: var(--ok); }
+.wipe.err { border-color: #7a3434; color: var(--err); }
+.wipe.remove { color: var(--muted); font-size: 11px; }
+.wipe.remove:hover { color: var(--err); }
+/* a streak sweeps in the wipe's direction on hover */
+.wipe:not(.remove)::after { content: ""; position: absolute; inset: -50%; background: linear-gradient(90deg, transparent 40%, #ffffff33 50%, transparent 60%); transform: rotate(var(--rot)) translateX(-60%); opacity: 0; }
+.wipe:not(.remove):hover::after { opacity: 1; animation: sweep .7s cubic-bezier(.65,0,.35,1) infinite; }
+@keyframes sweep { from { transform: rotate(var(--rot)) translateX(-60%); } to { transform: rotate(var(--rot)) translateX(60%); } }
+
+.layer { justify-content: space-between; color: var(--muted); margin-top: 4px; }
+.layer label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.state { font-size: 11px; text-align: right; }
+.state.found { color: var(--ok); }
+
+.status { position: fixed; left: 10px; right: 10px; bottom: 10px; background: #111; border: 1px solid #444; border-radius: 7px; padding: 8px 10px; word-wrap: break-word; }
+.status.ok { border-color: #2c6b4f; }
+.status.err { border-color: #7a3434; color: #fecaca; }

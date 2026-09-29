@@ -1,0 +1,58 @@
+[hidden] { display: none !important; }
+:root {
+  --bg: #1e1e1e;
+  --btn: transparent;
+  --hover: #ffffff14;
+  --icon: #c8c8c8;
+  --accent: #2d8ceb;
+  --line: #333;
+  --menu: #2a2a2a;
+  --ok: #3ecf8e;
+  --err: #ef6b6b;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: #e6e6e6; overflow: hidden; }
+body { font: 12px/1.35 "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif; user-select: none; }
+svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* vertical when docked narrow, a single row when docked wide */
+.bar { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; height: 100%; overflow-y: auto; overflow-x: hidden; }
+@media (min-aspect-ratio: 2/1) { body .status { left: auto; bottom: auto; top: 4px; max-width: 45%; padding: 3px 8px; } .bar { flex-direction: row; flex-wrap: wrap; height: auto; padding: 4px 8px; justify-content: flex-start; } .sep { width: 1px !important; height: 26px !important; } }
+.sep { width: 26px; height: 1px; background: var(--line); margin: 4px 0; flex: none; }
+
+.tool { position: relative; width: 34px; height: 34px; flex: none; border: 1px solid transparent; border-radius: 6px; background: var(--btn); color: var(--icon); display: grid; place-items: center; cursor: pointer; padding: 0; transition: background .12s, color .12s; }
+.tool:hover { background: var(--hover); color: #fff; }
+.tool:active { transform: scale(.94); }
+.tool.more::after { content: ""; position: absolute; right: 3px; bottom: 3px; border: 3px solid transparent; border-right-color: currentColor; border-bottom-color: currentColor; opacity: .7; }
+.tool.busy { color: var(--accent); }
+.tool.ok { color: var(--ok); border-color: #2c6b4f; }
+.tool.err { color: var(--err); border-color: #7a3434; }
+.tool.clip { border-color: #7a5af8; color: #cbbcff; }
+
+.tip { position: fixed; z-index: 30; background: #111; border: 1px solid #444; border-radius: 5px; padding: 4px 8px; white-space: nowrap; pointer-events: none; font-size: 12px; box-shadow: 0 4px 14px #0008; }
+.tip kbd { margin-left: 8px; color: #9fc6ff; font: inherit; }
+.tip small { display: block; color: #999; }
+
+.menu { position: fixed; z-index: 20; min-width: 170px; background: var(--menu); border: 1px solid #3c3c3c; border-radius: 8px; padding: 5px; box-shadow: 0 8px 24px #000a; max-height: calc(100% - 10px); overflow-y: auto; }
+.menu button { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; color: #e6e6e6; padding: 7px 9px; border-radius: 5px; font: inherit; font-size: 13px; cursor: pointer; text-align: left; }
+.menu button:hover { background: #3a3a3a; }
+.menu button svg { width: 18px; height: 18px; color: var(--icon); }
+.menu button kbd { margin-left: auto; color: #8a8a8a; font: inherit; font-size: 11px; }
+.menu button.cur { color: #9fc6ff; }
+.menu .hd { padding: 4px 9px 6px; color: #8a8a8a; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+
+.status { position: fixed; z-index: 25; left: 4px; right: 4px; bottom: 4px; background: #111; border: 1px solid #444; border-radius: 6px; padding: 6px 8px; font-size: 11px; word-wrap: break-word; }
+.status.err { border-color: #7a3434; color: #fecaca; }
+.status.ok { border-color: #2c6b4f; }
+
+.keys { position: fixed; inset: 0; z-index: 40; background: var(--bg); overflow-y: auto; padding: 10px 12px; }
+.keys header { display: flex; justify-content: space-between; align-items: center; font-size: 14px; margin-bottom: 6px; }
+.keys p { color: #aaa; margin: 6px 0 10px; }
+.keys .note { font-size: 11px; color: #888; }
+.x { background: none; border: 0; color: #aaa; font-size: 14px; cursor: pointer; }
+.keys table { width: 100%; border-collapse: collapse; }
+.keys td { padding: 5px 4px; border-bottom: 1px solid #2c2c2c; }
+.keys td:first-child { width: 26px; color: var(--icon); }
+.keys td:first-child svg { width: 16px; height: 16px; }
+.keys .rec { min-width: 92px; background: #151515; color: #9fc6ff; border: 1px solid #3a3a3a; border-radius: 4px; padding: 3px 8px; font: inherit; cursor: pointer; }
+.keys .rec.listen { border-color: var(--accent); color: #fff; }
