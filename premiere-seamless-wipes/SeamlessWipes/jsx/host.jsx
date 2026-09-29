@@ -105,10 +105,46 @@ function sw_refetch(seq, trackIndex, start) {
     return null;
 }
 
-/* key helpers: Premiere versions differ on Time objects vs seconds */
-function sw_addKey(p, sec) { try { p.addKey(sw_time(sec)); } catch (e) { p.addKey(sec); } }
-function sw_setKey(p, sec, v) { try { p.setValueAtKey(sw_time(sec), v, true); } catch (e) { p.setValueAtKey(sec, v, true); } }
-function sw_linear(p, sec) { try { p.setInterpolationTypeAtKey(sw_time(sec), 0, true); } catch (e) {} }
+/* Key helpers. Premiere stores key times in ticks, and setValueAtKey only accepts a time
+   that matches a stored key exactly ("Invalid parameter" otherwise), so values are always
+   written through the key's own Time object as returned by getKeys(). */
+function sw_ticksTime(sec) { var t = new Time(); t.ticks = String(Math.round(sec * SW_TICKS)); return t; }
+function sw_addKey(p, sec) {
+    try { p.addKey(sw_ticksTime(sec)); return; } catch (e) {}
+    p.addKey(sec);
+}
+/* key times come back as Time objects or, in some versions, plain seconds */
+function sw_keySec(k) { return typeof k === "number" ? k : k.seconds; }
+function sw_keyAt(p, sec) {
+    var keys = p.getKeys(), best = null, bd = 1e9;
+    for (var i = 0; keys && i < keys.length; i++) {
+        var d = Math.abs(sw_keySec(keys[i]) - sec);
+        if (d < bd) { bd = d; best = keys[i]; }
+    }
+    return best;
+}
+function sw_setKey(p, sec, v) {
+    var k = sw_keyAt(p, sec);
+    if (k === null) throw "no keyframe at " + sec.toFixed(3) + "s";
+    try { p.setValueAtKey(k, v, true); return; } catch (e) {}
+    p.setValueAtKey(sw_keySec(k), v, true);
+}
+function sw_linear(p, sec) {
+    try { var k = sw_keyAt(p, sec); if (k) p.setInterpolationTypeAtKey(k, 0, true); } catch (e) {}
+}
+/* run one step, naming it in the error if Premiere refuses */
+function sw_step(label, fn) {
+    try { return fn(); } catch (e) { throw label + ": " + (e && e.message ? e.message : e); }
+}
+/* zero out the effects we added, in case Premiere won't let QE delete them */
+function sw_neutralise(clip, before) {
+    try {
+        var off = sw_comp(clip, ["offset"], before), bl = sw_comp(clip, ["directional"], before + 1);
+        var sh = sw_prop(off, ["center", "centre"], 0), ln = sw_prop(bl, ["length"], 1);
+        if (ln) { try { ln.setTimeVarying(false); } catch (e) {} try { ln.setValue(0, true); } catch (e2) {} }
+        if (sh) { try { sh.setTimeVarying(false); } catch (e3) {} }
+    } catch (e4) {}
+}
 
 /* add Offset + Directional Blur to one clip and key one half of the move */
 function sw_keySide(seq, trackIndex, clip, dir, frames, outgoing) {
@@ -123,7 +159,8 @@ function sw_keySide(seq, trackIndex, clip, dir, frames, outgoing) {
     try {
         sw_animate(seq, clip, dir, frames, outgoing, before);
     } catch (e) {
-        sw_stripNewest(q, 2);          // never leave a half-built, blurred clip behind
+        sw_neutralise(clip, before);   // never leave a half-built, blurred clip behind
+        sw_stripNewest(q, 2);
         throw e;
     }
 }
@@ -142,32 +179,39 @@ function sw_animate(seq, clip, dir, frames, outgoing, before) {
     var c0 = shift.getValue(), w = 1, h = 1;
     if (c0 && c0[0] > 2) { w = seq.frameSizeHorizontal; h = seq.frameSizeVertical; }
     var cx = w / 2, cy = h / 2;
-    if (bDir) bDir.setValue(dir[0] !== 0 ? 90 : 0, true);        // 90° = horizontal streaks
+    if (bDir) { try { bDir.setValue(dir[0] !== 0 ? 90 : 0, true); } catch (e) {} }   // 90° = horizontal streaks
 
     // One curve runs straight through the cut, a key on every frame. With N frames per side,
     // frame k goes from -N (outgoing starts) to N (incoming at rest), the cut sitting between -1 and 0.
     // Travel eases in then out over one full frame width; blur follows the speed, peaking at the cut.
     var N = Math.max(1, frames), mediaIn = clip.inPoint.seconds, clipLen = clip.end.seconds - clip.start.seconds;
     var kFrom = outgoing ? -N : 0, kTo = outgoing ? -1 : N;
-    shift.setTimeVarying(true);
-    bLen.setTimeVarying(true);
-    var first = null, last = null;
+    sw_step("Turning on keyframes", function () { shift.setTimeVarying(true); bLen.setTimeVarying(true); });
+    var plan = [], i;
     for (var k = kFrom; k <= kTo; k++) {
         var rel = outgoing ? clipLen + k * f : k * f;               // seconds from the clip's start
-        if (rel < 0 || rel > clipLen) continue;                     // clip shorter than the move
+        if (rel < -f / 4 || rel > clipLen + f / 4) continue;         // clip shorter than the move
         var u = (k + N) / (2 * N);                                  // 0..1 across the whole wipe
         var travel = u < 0.5 ? 2 * u * u : 1 - 2 * (1 - u) * (1 - u);
         var speed = Math.min(1, 2 * Math.min(u, 1 - u) + 1 / (2 * N));
-        var sec = mediaIn + rel;
-        sw_addKey(shift, sec);
-        sw_setKey(shift, sec, [cx + dir[0] * travel * w, cy + dir[1] * travel * h]);
-        sw_linear(shift, sec);
-        sw_addKey(bLen, sec);
-        sw_setKey(bLen, sec, k === N || k === -N ? 0 : Math.round(SW_BLUR * speed * 10) / 10);
-        sw_linear(bLen, sec);
-        if (first === null) first = sec;
-        last = sec;
+        plan.push({
+            sec: mediaIn + Math.max(0, rel),
+            pos: [cx + dir[0] * travel * w, cy + dir[1] * travel * h],
+            blur: k === N || k === -N ? 0 : Math.round(SW_BLUR * speed * 10) / 10
+        });
     }
+    if (!plan.length) throw "The clip is too short for this wipe.";
+    // add every key first, then write values through the keys Premiere actually stored
+    sw_step("Adding keyframes", function () {
+        for (i = 0; i < plan.length; i++) { sw_addKey(shift, plan[i].sec); sw_addKey(bLen, plan[i].sec); }
+    });
+    sw_step("Setting the slide", function () {
+        for (i = 0; i < plan.length; i++) { sw_setKey(shift, plan[i].sec, plan[i].pos); sw_linear(shift, plan[i].sec); }
+    });
+    sw_step("Setting the blur", function () {
+        for (i = 0; i < plan.length; i++) { sw_setKey(bLen, plan[i].sec, plan[i].blur); sw_linear(bLen, plan[i].sec); }
+    });
+    var first = plan[0].sec, last = plan[plan.length - 1].sec;
     // Premiere may drop an extra key where the playhead was; remove anything outside the move
     sw_trimKeys(shift, first, last, f);
     sw_trimKeys(bLen, first, last, f);
@@ -176,7 +220,7 @@ function sw_trimKeys(p, a, b, f) {
     try {
         var keys = p.getKeys();
         for (var i = 0; keys && i < keys.length; i++) {
-            var s = keys[i].seconds;
+            var s = sw_keySec(keys[i]);
             if (s < a - f / 2 || s > b + f / 2) p.removeKey(keys[i]);
         }
     } catch (e) {}
@@ -206,7 +250,8 @@ function sw_remove() {
             var q = sw_qeItem(seq, cut.track, pair[i]);
             for (var c = q.numComponents - 1; c >= 0; c--) {
                 var comp = q.getComponentAt(c);
-                if (comp && (comp.name === "Offset" || comp.name === "Directional Blur")) {
+                var cn = sw_lc(comp && comp.name);
+                if (cn.indexOf("offset") >= 0 || cn.indexOf("directional blur") >= 0) {
                     try { comp.remove(); n++; } catch (e) {}
                 }
             }
