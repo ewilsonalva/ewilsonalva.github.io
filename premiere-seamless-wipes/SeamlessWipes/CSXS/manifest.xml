@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.ewilsonalva.seamlesswipes" ExtensionBundleVersion="1.0.2" ExtensionBundleName="Seamless Wipes" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.ewilsonalva.seamlesswipes" ExtensionBundleVersion="2.0.0" ExtensionBundleName="Seamless Wipes" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
     <Extension Id="com.ewilsonalva.seamlesswipes.panel" Version="1.0.0" />
   </ExtensionList>
@@ -34,8 +34,8 @@
           <Menu>Seamless Wipes</Menu>
           <Geometry>
             <Size>
-              <Height>420</Height>
-              <Width>300</Width>
+              <Height>560</Height>
+              <Width>330</Width>
             </Size>
             <MinSize>
               <Height>300</Height>
