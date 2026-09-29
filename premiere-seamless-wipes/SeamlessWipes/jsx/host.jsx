@@ -213,23 +213,23 @@ function sw_buildStack(trackIndex, itemStart, dirKey, fullA, fullB) {
     if (comps.numItems < before + 6) throw "Premiere added only " + (comps.numItems - before) + " of the 6 effects.";
     var cT = comps[before], cM1 = comps[before + 1], cM2 = comps[before + 2], cO = comps[before + 3], cC = comps[before + 4], cB = comps[before + 5];
 
+    // Points are never written in guessed units. Every new effect starts with its point
+    // at the frame centre, in whatever units that Premiere version uses, so positions are
+    // derived from that default: half of it is the quarter point, twice it is a full frame.
+    // The Transform anchor is left at its default (the layer centre).
     sw_step("Setting up Transform", function () {
-        var anchor = sw_prop(cT, ["anchor"], 0), pos = sw_prop(cT, ["position"], 1);
-        var p0 = pos.getValue(), px = p0 && p0[0] > 2;                       // normalised or pixels
-        var W = px ? seq.frameSizeHorizontal : 1, H = px ? seq.frameSizeVertical : 1;
+        var pos = sw_prop(cT, ["position"], 1), p0 = pos.getValue();
         sw_set(sw_prop(cT, ["uniform"], 2), true);
-        sw_set(anchor, [0.5 * W, 0.5 * H]);
-        sw_set(pos, [0.25 * W, 0.25 * H]);
+        sw_set(pos, [p0[0] * 0.5, p0[1] * 0.5]);
         sw_set(sw_prop(cT, ["scale height", "scale"], 3), 50);
         sw_set(sw_prop(cT, ["scale width"], 4), 50);
     });
     sw_step("Setting up Mirror", function () {
-        var W = seq.frameSizeHorizontal, H = seq.frameSizeVertical;
         var c1 = sw_prop(cM1, ["center", "centre"], 0), c2 = sw_prop(cM2, ["center", "centre"], 0);
-        var px = c1.getValue() && c1.getValue()[0] > 2;
-        sw_set(c1, px ? [0.4997 * W, 0.5 * H] : [0.4997, 0.5]);
+        var m1 = c1.getValue(), m2 = c2.getValue();
+        sw_set(c1, [m1[0] * 0.9995, m1[1]]);          // a hair left of centre, as in the presets, so no seam shows
         sw_set(sw_prop(cM1, ["angle"], 1), 0);
-        sw_set(c2, px ? [0.5 * W, 0.4995 * H] : [0.5, 0.4995]);
+        sw_set(c2, [m2[0], m2[1] * 0.999]);
         sw_set(sw_prop(cM2, ["angle"], 1), 90);
     });
     sw_step("Setting up Crop", function () {
@@ -246,8 +246,7 @@ function sw_buildStack(trackIndex, itemStart, dirKey, fullA, fullB) {
     if (!shift || !blur) throw "Could not find Offset / Blur settings on the new effects.";
 
     // one key per frame of this item's share of the move
-    var s0 = shift.getValue(), spx = s0 && s0[0] > 2;
-    var W2 = spx ? seq.frameSizeHorizontal : 1, H2 = spx ? seq.frameSizeVertical : 1;
+    var s0 = shift.getValue(), cx = s0[0], cy = s0[1];                      // default = frame centre
     var K = Math.max(2, Math.round((fullB - fullA) / f));                     // frames in the whole move
     var mediaIn = item.inPoint.seconds, iA = item.start.seconds, iB = item.end.seconds;
     var plan = [];
@@ -257,7 +256,7 @@ function sw_buildStack(trackIndex, itemStart, dirKey, fullA, fullB) {
         var u = k / (K - 1), e2 = sw_ease(u);
         plan.push({
             sec: mediaIn + Math.max(0, t - iA),
-            pos: [(0.5 + dir[0] * e2) * W2, (0.5 + dir[1] * e2) * H2],
+            pos: [cx + dir[0] * e2 * 2 * cx, cy + dir[1] * e2 * 2 * cy],   // 2 * centre = one frame
             blur: Math.round(SW_BLUR * sw_speed(u) * 10) / 10
         });
     }
