@@ -46,15 +46,46 @@ function sw_findCut(seq) {
     throw "Park the playhead near a cut between two touching video clips.";
 }
 
-function sw_param(comp, name) {
-    for (var i = 0; i < comp.properties.numItems; i++)
-        if (comp.properties[i].displayName === name) return comp.properties[i];
-    return null;
+function sw_lc(x) { return String(x || "").toLowerCase(); }
+/* a property by (lower-case) name fragment, else by its position in the effect */
+function sw_prop(comp, fragments, index) {
+    if (!comp) return null;
+    var props = comp.properties;
+    for (var i = 0; i < props.numItems; i++) {
+        var n = sw_lc(props[i].displayName);
+        for (var k = 0; k < fragments.length; k++) if (n.indexOf(fragments[k]) >= 0) return props[i];
+    }
+    return index < props.numItems ? props[index] : null;
 }
-function sw_lastComponent(clip, name) {
-    for (var i = clip.components.numItems - 1; i >= 0; i--)
-        if (clip.components[i].displayName === name) return clip.components[i];
-    return null;
+/* the newest component whose name or match name contains a fragment;
+   else the component that appeared at position `fallback` when we added it */
+function sw_comp(clip, fragments, fallback) {
+    var comps = clip.components;
+    for (var i = comps.numItems - 1; i >= 0; i--) {
+        var n = sw_lc(comps[i].displayName) + " " + sw_lc(comps[i].matchName);
+        for (var k = 0; k < fragments.length; k++) if (n.indexOf(fragments[k]) >= 0) return comps[i];
+    }
+    return fallback < comps.numItems ? comps[fallback] : null;
+}
+/* what Premiere reported, for the error message */
+function sw_describe(clip) {
+    var out = [];
+    for (var i = 0; i < clip.components.numItems; i++) {
+        var c = clip.components[i], ps = [];
+        for (var j = 0; j < c.properties.numItems; j++) ps.push(c.properties[j].displayName);
+        out.push(c.displayName + " [" + ps.join(", ") + "]");
+    }
+    return out.join("; ");
+}
+/* take our two effects back off a clip (newest instances only) */
+function sw_stripNewest(q, count) {
+    var removed = 0;
+    for (var c = q.numComponents - 1; c >= 0 && removed < count; c--) {
+        var comp = q.getComponentAt(c), n = sw_lc(comp && comp.name);
+        if (n.indexOf("offset") >= 0 || n.indexOf("directional blur") >= 0) {
+            try { comp.remove(); removed++; } catch (e) {}
+        }
+    }
 }
 function sw_qeItem(seq, trackIndex, clip) {
     app.enableQE();
@@ -67,7 +98,8 @@ function sw_qeItem(seq, trackIndex, clip) {
 }
 /* re-read the clip after QE changed it, so its component list is current */
 function sw_refetch(seq, trackIndex, start) {
-    var clips = seq.videoTracks[trackIndex].clips;
+    var fresh = app.project.activeSequence || seq;        // a new handle sees the effects QE just added
+    var clips = fresh.videoTracks[trackIndex].clips;
     for (var i = 0; i < clips.numItems; i++)
         if (Math.abs(clips[i].start.seconds - start) < 0.01) return clips[i];
     return null;
@@ -84,15 +116,27 @@ function sw_keySide(seq, trackIndex, clip, dir, frames, outgoing) {
     var fxOffset = qe.project.getVideoEffectByName("Offset");
     var fxBlur = qe.project.getVideoEffectByName("Directional Blur");
     if (!fxOffset || !fxBlur) throw "Premiere's Offset or Directional Blur effect is missing.";
-    var start = clip.start.seconds;
+    var start = clip.start.seconds, before = clip.components.numItems;
     q.addVideoEffect(fxOffset);
     q.addVideoEffect(fxBlur);
     clip = sw_refetch(seq, trackIndex, start);
+    try {
+        sw_animate(seq, clip, dir, frames, outgoing, before);
+    } catch (e) {
+        sw_stripNewest(q, 2);          // never leave a half-built, blurred clip behind
+        throw e;
+    }
+}
 
-    var shift = sw_param(sw_lastComponent(clip, "Offset"), "Shift Center To");
-    var blur = sw_lastComponent(clip, "Directional Blur");
-    var bDir = sw_param(blur, "Direction"), bLen = sw_param(blur, "Blur Length");
-    if (!shift || !bLen) throw "Could not read the Offset / Directional Blur settings.";
+function sw_animate(seq, clip, dir, frames, outgoing, before) {
+    var f = sw_frame(seq);
+    var offset = sw_comp(clip, ["offset"], before);
+    var blur = sw_comp(clip, ["directional blur", "directional", "motion blur"], before + 1);
+    var shift = sw_prop(offset, ["shift center", "shift centre", "center", "centre"], 0);
+    var bDir = sw_prop(blur, ["direction"], 0), bLen = sw_prop(blur, ["length"], 1);
+    if (!shift || !bLen || shift === bLen) {
+        throw "Could not read the Offset / Directional Blur settings. Premiere reported: " + sw_describe(clip);
+    }
 
     // Offset's centre is normally [0.5, 0.5]; some versions report pixels instead
     var c0 = shift.getValue(), w = 1, h = 1;
