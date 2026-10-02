@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionList>
+  <!-- With PlayerDebugMode on, open http://localhost:8099 in Chrome to get DevTools for the panel. -->
+  <Extension Id="com.grabbit.premiere.panel">
+    <HostList>
+      <Host Name="PPRO" Port="8099" />
+    </HostList>
+  </Extension>
+</ExtensionList>
