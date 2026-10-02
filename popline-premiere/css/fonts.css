@@ -1,0 +1,14 @@
+/* Bundled caption fonts, same family names the .ass files use. */
+@font-face { font-family: "Montserrat Black"; src: url("../fonts/Montserrat-Black.ttf"); }
+@font-face { font-family: "Montserrat ExtraBold"; src: url("../fonts/Montserrat-ExtraBold.ttf"); }
+@font-face { font-family: "Montserrat SemiBold"; src: url("../fonts/Montserrat-SemiBold.ttf"); }
+@font-face { font-family: "Poppins Black"; src: url("../fonts/Poppins-Black.ttf"); }
+@font-face { font-family: "Poppins ExtraBold"; src: url("../fonts/Poppins-ExtraBold.ttf"); }
+@font-face { font-family: "Poppins SemiBold"; src: url("../fonts/Poppins-SemiBold.ttf"); }
+@font-face { font-family: "Anton"; src: url("../fonts/Anton-Regular.ttf"); }
+@font-face { font-family: "Bebas Neue"; src: url("../fonts/BebasNeue-Regular.ttf"); }
+@font-face { font-family: "Archivo Black"; src: url("../fonts/ArchivoBlack-Regular.ttf"); }
+@font-face { font-family: "Luckiest Guy"; src: url("../fonts/LuckiestGuy-Regular.ttf"); }
+@font-face { font-family: "Bangers"; src: url("../fonts/Bangers-Regular.ttf"); }
+@font-face { font-family: "DM Serif Display"; src: url("../fonts/DMSerifDisplay-Italic.ttf"); font-style: italic; }
+@font-face { font-family: "Great Vibes"; src: url("../fonts/GreatVibes-Regular.ttf"); }

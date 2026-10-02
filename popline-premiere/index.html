@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Popline</title>
+  <link rel="stylesheet" href="css/fonts.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="6" width="26" height="20" rx="4"/><rect class="fill" x="7" y="17" width="8" height="4" rx="1.5"/><rect class="fill2" x="17" y="17" width="8" height="4" rx="1.5"/></svg>
+      <div>
+        <h1>POPLINE</h1>
+        <p>viral captions for premiere pro</p>
+      </div>
+    </div>
+    <span id="seqPill" class="pill" title="Active sequence">no sequence</span>
+  </header>
+
+  <section class="preview" id="preview">
+    <div class="screen" id="screen">
+      <img id="previewImg" alt="" hidden>
+      <video id="previewVid" muted playsinline hidden></video>
+      <p id="previewEmpty" class="empty">Transcribe a clip to see your captions here.</p>
+      <span id="previewBusy" class="spinner" hidden></span>
+    </div>
+    <div class="row pv-bar">
+      <button id="prevCap" class="btn icon" title="Previous caption">◀</button>
+      <span id="capCounter" class="dim">–</span>
+      <button id="nextCap" class="btn icon" title="Next caption">▶</button>
+      <button id="playBtn" class="btn small grow" title="Render a short animated preview of this caption">PLAY CAPTION</button>
+    </div>
+  </section>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="transcribe" class="on"><b>01</b>TRANSCRIBE</button>
+    <button data-tab="edit"><b>02</b>EDIT</button>
+    <button data-tab="style"><b>03</b>STYLE</button>
+    <button data-tab="add"><b>04</b>ADD</button>
+  </nav>
+  <div class="bar"><div id="barFill"></div></div>
+  <p id="status" class="status">Select clips on the timeline, then press TRANSCRIBE.</p>
+
+  <!-- 01 TRANSCRIBE -->
+  <section class="card tab" data-panel="transcribe">
+    <div class="grid2">
+      <div>
+        <label for="source">SOURCE</label>
+        <select id="source"><option value="selected">Selected clips</option></select>
+      </div>
+      <div>
+        <label for="language">LANGUAGE</label>
+        <select id="language">
+          <option value="auto">Auto-detect</option>
+          <option value="en">English</option><option value="es">Spanish</option><option value="pt">Portuguese</option>
+          <option value="fr">French</option><option value="de">German</option><option value="it">Italian</option>
+          <option value="nl">Dutch</option><option value="ar">Arabic</option><option value="hi">Hindi</option>
+          <option value="ja">Japanese</option><option value="ko">Korean</option><option value="zh">Chinese</option>
+          <option value="ru">Russian</option><option value="tr">Turkish</option><option value="pl">Polish</option>
+        </select>
+      </div>
+      <div>
+        <label for="engine">ENGINE</label>
+        <select id="engine">
+          <option value="local">On this computer (whisper)</option>
+          <option value="openai">OpenAI API (cloud)</option>
+        </select>
+      </div>
+      <div data-engine="local">
+        <label for="model">MODEL</label>
+        <select id="model"></select>
+      </div>
+      <div data-engine="openai">
+        <label for="apiKey">OPENAI API KEY</label>
+        <input id="apiKey" type="password" spellcheck="false" placeholder="sk-…">
+      </div>
+    </div>
+    <div class="row mt" data-engine="local">
+      <select id="dlModel" class="grow"></select>
+      <button id="dlBtn" class="btn small">DOWNLOAD MODEL</button>
+    </div>
+    <label for="prompt">VOCABULARY HINT <i>(optional: names, brands, slang)</i></label>
+    <input id="prompt" type="text" spellcheck="false" placeholder="e.g. Popline, MrBeast, Premiere Pro">
+    <div class="checks">
+      <label class="check"><input id="inOut" type="checkbox"> Only between sequence In/Out</label>
+      <label class="check"><input id="fillers" type="checkbox" checked> Remove filler words (um, uh)</label>
+      <label class="check"><input id="translate" type="checkbox"> Translate to English</label>
+    </div>
+    <div class="row actions">
+      <button id="transcribeBtn" class="btn primary">TRANSCRIBE</button>
+      <button id="cancelBtn" class="btn danger" hidden>CANCEL</button>
+    </div>
+    <div id="tools" class="tools"></div>
+  </section>
+
+  <!-- 02 EDIT -->
+  <section class="card tab" data-panel="edit" hidden>
+    <div class="row wrap">
+      <button id="fillerBtn" class="btn small">REMOVE FILLERS</button>
+      <button id="syncEarly" class="btn small" title="Move every caption 0.1s earlier">SYNC −0.1s</button>
+      <button id="syncLate" class="btn small" title="Move every caption 0.1s later">SYNC +0.1s</button>
+      <span id="syncTotal" class="dim"></span>
+    </div>
+    <div class="row mt">
+      <input id="findText" type="text" placeholder="Find" spellcheck="false">
+      <input id="replaceText" type="text" placeholder="Replace with" spellcheck="false">
+      <button id="replaceBtn" class="btn small">REPLACE</button>
+    </div>
+    <p class="hint">Edit any caption. <code>*word*</code> = highlight colour · <code>|</code> = start a new caption · <b>⤒</b> merges with the one above.</p>
+    <div id="capList" class="caplist"><p class="empty">No captions yet.</p></div>
+  </section>
+
+  <!-- 03 STYLE -->
+  <section class="card tab" data-panel="style" hidden>
+    <div id="presets" class="presets"></div>
+    <div class="row mt">
+      <input id="presetName" type="text" placeholder="Name this look" spellcheck="false">
+      <button id="savePreset" class="btn small">SAVE AS PRESET</button>
+    </div>
+
+    <h3>TEXT</h3>
+    <div class="grid2">
+      <div><label for="s_font">FONT</label><select id="s_font" data-k="font"></select></div>
+      <div><label for="s_size">SIZE <output data-for="s_size"></output></label><input id="s_size" data-k="size" type="range" min="30" max="260" step="2"></div>
+      <div><label for="s_spacing">LETTER SPACING <output data-for="s_spacing"></output></label><input id="s_spacing" data-k="spacing" type="range" min="-5" max="30" step="1"></div>
+      <div class="checkcell"><label class="check"><input id="s_uppercase" data-k="uppercase" type="checkbox"> UPPERCASE</label></div>
+    </div>
+
+    <h3>COLOURS</h3>
+    <div class="grid4">
+      <div><label for="s_color">TEXT</label><input id="s_color" data-k="color" type="color"></div>
+      <div><label for="s_accent">HIGHLIGHT</label><input id="s_accent" data-k="accent" type="color"></div>
+      <div><label for="s_outlineColor">OUTLINE</label><input id="s_outlineColor" data-k="outlineColor" type="color"></div>
+      <div><label for="s_boxColor">BOX</label><input id="s_boxColor" data-k="boxColor" type="color"></div>
+      <div><label for="s_shadowColor">SHADOW</label><input id="s_shadowColor" data-k="shadowColor" type="color"></div>
+      <div class="checkcell span3"><label class="check"><input id="s_rainbow" data-k="rainbow" type="checkbox"> Rainbow words</label></div>
+    </div>
+    <div class="grid2">
+      <div><label for="s_outline">OUTLINE <output data-for="s_outline"></output></label><input id="s_outline" data-k="outline" type="range" min="0" max="20" step="1"></div>
+      <div><label for="s_shadow">SHADOW <output data-for="s_shadow"></output></label><input id="s_shadow" data-k="shadow" type="range" min="0" max="20" step="1"></div>
+      <div><label for="s_glow">GLOW <output data-for="s_glow"></output></label><input id="s_glow" data-k="glow" type="range" min="0" max="20" step="1"></div>
+      <div><label for="s_shadowOpacity">SHADOW OPACITY <output data-for="s_shadowOpacity"></output></label><input id="s_shadowOpacity" data-k="shadowOpacity" type="range" min="0" max="100" step="5"></div>
+    </div>
+
+    <h3>WORDS</h3>
+    <div class="grid2">
+      <div><label for="s_highlight">ACTIVE WORD</label>
+        <select id="s_highlight" data-k="highlight">
+          <option value="none">No highlight</option>
+          <option value="color">Colour the spoken word</option>
+          <option value="box">Box behind the spoken word</option>
+          <option value="pop">Pop the spoken word</option>
+          <option value="reveal">Reveal word by word</option>
+        </select></div>
+      <div><label for="s_maxWords">WORDS PER CAPTION <output data-for="s_maxWords"></output></label><input id="s_maxWords" data-k="maxWords" type="range" min="1" max="12" step="1"></div>
+      <div><label for="s_maxChars">CHARACTERS PER LINE <output data-for="s_maxChars"></output></label><input id="s_maxChars" data-k="maxChars" type="range" min="6" max="40" step="1"></div>
+      <div><label for="s_lines">LINES</label>
+        <select id="s_lines" data-k="lines"><option value="1">1 line</option><option value="2">Up to 2 lines</option><option value="3">Up to 3 lines</option></select></div>
+    </div>
+
+    <h3>MOTION &amp; POSITION</h3>
+    <div class="grid2">
+      <div><label for="s_anim">ANIMATION IN</label>
+        <select id="s_anim" data-k="anim">
+          <option value="none">None (cut)</option><option value="pop">Pop</option><option value="bounce">Bounce</option>
+          <option value="fade">Fade</option><option value="blur">Blur reveal</option><option value="spread">Smooth opacity (spread)</option>
+          <option value="slideUp">Smooth up</option><option value="slideDown">Drop down</option><option value="rightIn">Right in</option>
+          <option value="zoomIn">Zoom in</option><option value="zoomOut">Zoom out (punch)</option><option value="glitch">Glitch</option>
+        </select></div>
+      <div><label for="s_animMs">ANIMATION SPEED <output data-for="s_animMs"></output></label><input id="s_animMs" data-k="animMs" type="range" min="60" max="800" step="20"></div>
+      <div><label for="s_out">ANIMATION OUT</label>
+        <select id="s_out" data-k="out"><option value="none">Cut</option><option value="fade">Fade out</option></select></div>
+      <div><label for="s_posY">VERTICAL POSITION <output data-for="s_posY"></output></label><input id="s_posY" data-k="posY" type="range" min="8" max="94" step="1"></div>
+    </div>
+  </section>
+
+  <!-- 04 ADD -->
+  <section class="card tab" data-panel="add" hidden>
+    <button id="overlayBtn" class="btn primary block">ADD ANIMATED CAPTIONS TO TIMELINE</button>
+    <p class="hint">Renders a transparent caption layer and places it on the top video track. Change the text or style and press it again to <b>update the same clip in place</b>.</p>
+
+    <button id="nativeBtn" class="btn block">ADD AS PREMIERE CAPTIONS</button>
+    <p class="hint">A native caption track. Edit the words in Premiere's Text panel and the look in Essential Graphics (no animation).</p>
+
+    <button id="mogrtBtn" class="btn block">ADD WITH A MOTION GRAPHICS TEMPLATE…</button>
+    <p class="hint">Pick a .mogrt with a text field (e.g. a title pack). One instance per caption, with the template's own animation, editable in Essential Graphics.</p>
+
+    <h3>EXPORT</h3>
+    <div class="row wrap">
+      <button id="srtBtn" class="btn small">SRT</button>
+      <button id="assBtn" class="btn small">ASS</button>
+      <button id="txtBtn" class="btn small">TRANSCRIPT .TXT</button>
+      <button id="folderBtn" class="btn small">OPEN FOLDER</button>
+    </div>
+  </section>
+
+  <details class="logwrap">
+    <summary>LOG</summary>
+    <pre id="log" class="log"></pre>
+  </details>
+
+  <footer>
+    <span class="pill">POPLINE v1.0.0</span>
+    Transcription runs on your computer with whisper.cpp unless you choose the OpenAI API.
+  </footer>
+
+  <script src="js/cep.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
