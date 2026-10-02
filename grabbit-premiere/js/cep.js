@@ -16,6 +16,15 @@
       return p;
     },
 
+    /** Ask Premiere to pass Ctrl/Cmd+V to the panel instead of swallowing it as its own Paste. */
+    keyInterest: function () {
+      if (!cep || !cep.registerKeyEventsInterest) return;
+      var win = navigator.platform.indexOf('Win') === 0;
+      cep.registerKeyEventsInterest(JSON.stringify(win
+        ? [{ keyCode: 86, ctrlKey: true }]          // VK_V
+        : [{ keyCode: 9, metaKey: true }]));        // kVK_ANSI_V
+    },
+
     /** Call an ExtendScript function by name; args are passed as JSON literals. Resolves to the parsed JSON result. */
     call: function (fn, args) {
       return new Promise(function (resolve, reject) {

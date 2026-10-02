@@ -140,3 +140,106 @@ test('cancel stops a running job', { skip: !tools.ffmpeg && 'ffmpeg not installe
   setTimeout(job.cancel, 300);
   await assert.rejects(job.promise, function (e) { return e.cancelled === true; });
 });
+
+/* ------------------------------------------------------------ v1.1: stills, paste, frames */
+
+test('parseClipboardOutput', function () {
+  assert.deepStrictEqual(core.parseClipboardOutput('\uFEFFFILE\tC:\\a b\\x.mp4\r\nFILE\tC:\\y.png\r\n'), { kind: 'files', files: ['C:\\a b\\x.mp4', 'C:\\y.png'] });
+  assert.deepStrictEqual(core.parseClipboardOutput('IMAGE\t/tmp/Pasted.png\n'), { kind: 'image', files: ['/tmp/Pasted.png'] });
+  assert.deepStrictEqual(core.parseClipboardOutput('TEXT\thttps://x.com/a\nline two'), { kind: 'text', text: 'https://x.com/a\nline two' });
+  assert.deepStrictEqual(core.parseClipboardOutput('EMPTY'), { kind: 'empty' });
+});
+
+test('file helpers', function () {
+  assert.ok(core.isStill('x.JPG') && !core.isStill('x.mov'));
+  assert.ok(core.isMediaPath('a.webp') && core.isMediaPath('b.wav') && !core.isMediaPath('c.txt'));
+  assert.strictEqual(core.safeName('a/b:c*"d"'), 'a b c d');
+  assert.strictEqual(core.timeTag(65.5), '1m5.5s');
+  assert.strictEqual(core.timeTag(3), '3s');
+  assert.deepStrictEqual(core.pickStream({ requested_formats: [{ vcodec: 'none', url: 'a' }, { vcodec: 'avc1', url: 'v', http_headers: { X: '1' } }] }), { url: 'v', headers: { X: '1' } });
+});
+
+function serveDir(files) {
+  var server = http.createServer(function (req, res) {
+    var u = req.url.split('?')[0];
+    if (u === '/redirect') { res.writeHead(302, { Location: '/poster.webp' }); return res.end(); }
+    var f = files[u];
+    if (!f) { res.writeHead(404); return res.end(); }
+    var data = fs.readFileSync(f.path);
+    var range = /bytes=(\d+)-(\d*)/.exec(req.headers.range || '');
+    if (range) {
+      var start = +range[1], end = range[2] ? +range[2] : data.length - 1;
+      res.writeHead(206, { 'Content-Type': f.type, 'Content-Length': end - start + 1, 'Content-Range': 'bytes ' + start + '-' + end + '/' + data.length, 'Accept-Ranges': 'bytes' });
+      return res.end(data.subarray(start, end + 1));
+    }
+    res.writeHead(200, { 'Content-Type': f.type, 'Content-Length': data.length, 'Accept-Ranges': 'bytes' });
+    res.end(data);
+  });
+  return new Promise(function (r) { server.listen(0, '127.0.0.1', function () { r(server); }); });
+}
+
+test('stills end-to-end: fetchMedia, webp->png, thumbnail, frame grab', { skip: !haveTools && 'yt-dlp/ffmpeg/ffprobe not installed', timeout: 120000 }, async function () {
+  var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'grabbit-stills-'));
+  var clip = path.join(dir, 'clip.mp4'), poster = path.join(dir, 'poster.webp'), page = path.join(dir, 'page.html'), png = path.join(dir, 'img.png');
+  // 10s clip whose frame number is burned in, so we can check the grabbed frame is the right one.
+  childProcess.execFileSync(tools.ffmpeg, ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=640x360:rate=25:duration=10', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-g', '250', clip]);
+  childProcess.execFileSync(tools.ffmpeg, ['-v', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=1280x720', '-frames:v', '1', '-c:v', 'libwebp', poster]);
+  childProcess.execFileSync(tools.ffmpeg, ['-v', 'error', '-f', 'lavfi', '-i', 'color=red:size=64x64', '-frames:v', '1', png]);
+  var server = await serveDir({
+    '/clip.mp4': { path: clip, type: 'video/mp4' },
+    '/poster.webp': { path: poster, type: 'image/webp' },
+    '/image-no-ext': { path: png, type: 'image/png' },
+    '/page.html': { path: page, type: 'text/html' }
+  });
+  var base = 'http://127.0.0.1:' + server.address().port;
+  fs.writeFileSync(page, '<html><head><title>Test Page</title></head><body><video poster="/poster.webp"><source src="/clip.mp4" type="video/mp4"></video></body></html>');
+  var out = path.join(dir, 'out');
+  try {
+    // A link to an image with no extension: saved using the Content-Type.
+    var r1 = await core.fetchMedia(base + '/image-no-ext', out);
+    assert.ok(r1.file && /\.png$/.test(r1.file), 'png saved: ' + r1.file);
+
+    // Redirect to a webp -> converted to png, webp removed.
+    var r2 = await core.fetchMedia(base + '/redirect', out);
+    assert.ok(/\.webp$/.test(r2.file));
+    var conv = await core.ensureImportable(tools, r2.file);
+    assert.ok(/\.png$/.test(conv) && fs.existsSync(conv) && !fs.existsSync(r2.file));
+
+    // A web page is not media.
+    var r3 = await core.fetchMedia(base + '/page.html', out);
+    assert.strictEqual(r3.notMedia, true);
+
+    // Thumbnail of a video page via yt-dlp.
+    var thumb = await core.grabThumbnail(tools, { url: base + '/page.html', outDir: path.join(out, 'thumbs') }).promise;
+    assert.ok(/ thumbnail\.png$/.test(thumb) && fs.existsSync(thumb), 'thumbnail: ' + thumb);
+    assert.strictEqual((await core.probe(tools, thumb)).width, 1280);
+
+    // Frame at 7.2s of a direct video link: compare against a locally decoded reference frame.
+    var frame = await core.grabFrame(tools, { url: base + '/clip.mp4', outDir: path.join(out, 'frames'), secs: 7.2, maxHeight: '1080' }).promise;
+    assert.ok(/@ 7\.2s\.png$/.test(frame), 'frame name: ' + frame);
+    var ref = path.join(dir, 'ref.png');
+    childProcess.execFileSync(tools.ffmpeg, ['-v', 'error', '-i', clip, '-vf', 'select=eq(n\\,180)', '-frames:v', '1', ref]);
+    var psnr = childProcess.spawnSync(tools.ffmpeg, ['-hide_banner', '-i', frame, '-i', ref, '-lavfi', 'psnr', '-f', 'null', '-'], { encoding: 'utf8' }).stderr;
+    var avg = /average:(inf|[\d.]+)/.exec(psnr)[1];
+    assert.ok(avg === 'inf' || parseFloat(avg) > 40, 'grabbed frame matches frame 180 (psnr ' + avg + ')');
+
+    // Past the end -> clear error.
+    await assert.rejects(core.grabFrame(tools, { url: base + '/clip.mp4', outDir: out, secs: 30 }).promise, /past the end|No frame/);
+
+    // JPG conversion.
+    var jpg = await core.toJpeg(tools, frame);
+    assert.ok(/\.jpg$/.test(jpg) && fs.existsSync(jpg) && !fs.existsSync(frame));
+  } finally {
+    server.close();
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('waitForFile resolves once the file is written', async function () {
+  var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'grabbit-wait-'));
+  var f = path.join(dir, 'Frame.png');
+  setTimeout(function () { fs.writeFileSync(f + '.png', 'x'); }, 300);
+  assert.strictEqual(await core.waitForFile([f, f + '.png'], 5000), f + '.png');
+  await assert.rejects(core.waitForFile([path.join(dir, 'never.png')], 400), /did not write/);
+  fs.rmSync(dir, { recursive: true, force: true });
+});

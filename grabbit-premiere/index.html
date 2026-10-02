@@ -25,6 +25,20 @@
   <div class="bar"><div id="barFill"></div></div>
   <p id="status" class="status">Paste a link or search YouTube.</p>
 
+  <section class="card quick">
+    <div class="row">
+      <button id="pasteBtn" class="btn" title="Images copied from a browser, files copied in Explorer/Finder, or a link. Ctrl/Cmd+V in this panel does the same.">PASTE CLIPBOARD</button>
+      <button id="exportFrameBtn" class="btn" title="Save the frame under the playhead as an image, add it to the project and put it on the timeline.">EXPORT FRAME</button>
+    </div>
+    <div class="row opts">
+      <label class="check"><input id="frameOnTimeline" type="checkbox" checked> Put exported frame on timeline</label>
+      <select id="frameFormat" class="mini" title="Image format for exported frames">
+        <option value="png">PNG</option>
+        <option value="jpg">JPG</option>
+      </select>
+    </div>
+  </section>
+
   <section class="card">
     <label for="query">VIDEO LINK OR SEARCH</label>
     <div class="row">
@@ -34,16 +48,23 @@
 
     <div id="results" class="results" hidden></div>
 
+    <label>GRAB</label>
+    <div class="seg" id="what" role="radiogroup">
+      <button data-what="video" class="on" role="radio">VIDEO</button>
+      <button data-what="thumb" role="radio">THUMBNAIL</button>
+      <button data-what="frame" role="radio">FRAME</button>
+    </div>
+
     <div class="grid2">
       <div>
-        <label for="inPoint">IN POINT <i>(optional)</i></label>
+        <label for="inPoint" id="inLabel">IN POINT <i>(optional)</i></label>
         <input id="inPoint" type="text" placeholder="0:00" class="tc">
       </div>
-      <div>
+      <div id="outWrap">
         <label for="outPoint">OUT POINT <i>(optional)</i></label>
         <input id="outPoint" type="text" placeholder="0:00" class="tc">
       </div>
-      <div>
+      <div id="qualityWrap">
         <label for="quality">MAX QUALITY</label>
         <select id="quality">
           <option value="2160">Up to 2160p</option>
@@ -62,7 +83,7 @@
           <option value="project">Project bin only</option>
         </select>
       </div>
-      <div>
+      <div id="encodeWrap">
         <label for="encodeMode">ENCODE</label>
         <select id="encodeMode">
           <option value="auto">Auto (if needed)</option>
@@ -76,6 +97,7 @@
         <input id="binName" type="text" value="Grabbit">
       </div>
     </div>
+    <p id="whatHint" class="hint"></p>
 
     <div class="row actions">
       <button id="grabBtn" class="btn primary">GRAB TO TIMELINE</button>
@@ -108,7 +130,7 @@
   <pre id="log" class="log"></pre>
 
   <footer>
-    <span class="pill">GRABBIT v1.0.0</span>
+    <span class="pill">GRABBIT v1.1.0</span>
     Only grab videos you own or have permission to use. Most platforms' terms restrict downloading, and this tool does not bypass DRM.
   </footer>
 
