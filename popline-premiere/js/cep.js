@@ -22,6 +22,11 @@
       var r = window.cep.fs.showOpenDialogEx(false, false, title, '', exts || []);
       return r && r.data && r.data.length ? r.data[0] : null;
     },
+    pickFiles: function (title, exts) {
+      if (!window.cep || !window.cep.fs) return null;
+      var r = window.cep.fs.showOpenDialogEx(true, false, title, '', exts || []);
+      return r && r.data ? r.data : null;
+    },
     pickFolder: function (title) {
       if (!window.cep || !window.cep.fs) return null;
       var r = window.cep.fs.showOpenDialogEx(false, true, title, '', []);

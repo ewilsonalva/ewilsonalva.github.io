@@ -1,14 +1,33 @@
-/* Bundled caption fonts, same family names the .ass files use. */
+/* Bundled caption fonts, same names the UI uses. */
 @font-face { font-family: "Montserrat Black"; src: url("../fonts/Montserrat-Black.ttf"); }
 @font-face { font-family: "Montserrat ExtraBold"; src: url("../fonts/Montserrat-ExtraBold.ttf"); }
 @font-face { font-family: "Montserrat SemiBold"; src: url("../fonts/Montserrat-SemiBold.ttf"); }
 @font-face { font-family: "Poppins Black"; src: url("../fonts/Poppins-Black.ttf"); }
 @font-face { font-family: "Poppins ExtraBold"; src: url("../fonts/Poppins-ExtraBold.ttf"); }
 @font-face { font-family: "Poppins SemiBold"; src: url("../fonts/Poppins-SemiBold.ttf"); }
+@font-face { font-family: "Inter Bold"; src: url("../fonts/Inter-Bold.ttf"); }
+@font-face { font-family: "Inter Bold Italic"; src: url("../fonts/Inter-BoldItalic.ttf"); font-style: italic; }
+@font-face { font-family: "Inter SemiBold"; src: url("../fonts/Inter-SemiBold.ttf"); }
+@font-face { font-family: "Inter ExtraBold"; src: url("../fonts/Inter-ExtraBold.ttf"); }
+@font-face { font-family: "Inter Black"; src: url("../fonts/Inter-Black.ttf"); }
 @font-face { font-family: "Anton"; src: url("../fonts/Anton-Regular.ttf"); }
 @font-face { font-family: "Bebas Neue"; src: url("../fonts/BebasNeue-Regular.ttf"); }
 @font-face { font-family: "Archivo Black"; src: url("../fonts/ArchivoBlack-Regular.ttf"); }
 @font-face { font-family: "Luckiest Guy"; src: url("../fonts/LuckiestGuy-Regular.ttf"); }
 @font-face { font-family: "Bangers"; src: url("../fonts/Bangers-Regular.ttf"); }
+@font-face { font-family: "Bungee"; src: url("../fonts/Bungee-Regular.ttf"); }
+@font-face { font-family: "Russo One"; src: url("../fonts/RussoOne-Regular.ttf"); }
+@font-face { font-family: "Righteous"; src: url("../fonts/Righteous-Regular.ttf"); }
+@font-face { font-family: "Black Ops One"; src: url("../fonts/BlackOpsOne-Regular.ttf"); }
+@font-face { font-family: "Rubik Mono One"; src: url("../fonts/RubikMonoOne-Regular.ttf"); }
+@font-face { font-family: "Shrikhand"; src: url("../fonts/Shrikhand-Regular.ttf"); }
+@font-face { font-family: "Permanent Marker"; src: url("../fonts/PermanentMarker-Regular.ttf"); }
+@font-face { font-family: "Abril Fatface"; src: url("../fonts/AbrilFatface-Regular.ttf"); }
 @font-face { font-family: "DM Serif Display"; src: url("../fonts/DMSerifDisplay-Italic.ttf"); font-style: italic; }
+@font-face { font-family: "Lobster"; src: url("../fonts/Lobster-Regular.ttf"); }
+@font-face { font-family: "Pacifico"; src: url("../fonts/Pacifico-Regular.ttf"); }
+@font-face { font-family: "Satisfy"; src: url("../fonts/Satisfy-Regular.ttf"); }
 @font-face { font-family: "Great Vibes"; src: url("../fonts/GreatVibes-Regular.ttf"); }
+@font-face { font-family: "Monoton"; src: url("../fonts/Monoton-Regular.ttf"); }
+@font-face { font-family: "VT323"; src: url("../fonts/VT323-Regular.ttf"); }
+@font-face { font-family: "Press Start 2P"; src: url("../fonts/PressStart2P-Regular.ttf"); }

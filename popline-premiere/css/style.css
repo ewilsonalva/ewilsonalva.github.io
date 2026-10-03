@@ -129,3 +129,49 @@ footer { color: var(--dim); font-size: 9.5px; line-height: 1.5; margin-top: 8px;
 footer .pill { margin-right: 6px; color: var(--text); }
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+/* v2 */
+.tabs { grid-template-columns: repeat(5, 1fr); }
+.tabs button { font-size: 9.5px; letter-spacing: 0.06em; }
+.span4 { grid-column: span 4; }
+.cats { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.cats button { border: 1px solid var(--line); background: var(--bg); color: var(--dim); border-radius: 999px; padding: 2px 9px; font: 10px var(--mono); cursor: pointer; }
+.cats button.on { color: var(--text); border-color: var(--line-hi); }
+.presets { max-height: 330px; overflow-y: auto; padding-right: 2px; }
+.preset .cat { position: absolute; top: 2px; left: 5px; font-size: 8px; color: #8a7f96; letter-spacing: 0.08em; }
+.inspector { border: 1px solid var(--line-hi); border-radius: 8px; padding: 8px 10px; margin: 8px 0; background: #2a1f2e; }
+.insp-head { display: flex; justify-content: space-between; font-size: 10px; letter-spacing: 0.1em; font-weight: 700; color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.chip { border: 1px solid var(--line); background: var(--bg); color: var(--text); border-radius: 5px; padding: 2px 7px; font: 11.5px var(--mono); cursor: pointer; }
+.chip.sel { border-color: var(--accent-2); box-shadow: 0 0 0 1px var(--accent-2); }
+.chip i { font-style: normal; font-size: 9px; color: var(--accent-2); margin-left: 4px; }
+.cap .tag { grid-column: 2 / 4; font-size: 9px; color: var(--accent-2); margin-top: -3px; padding-left: 9px; }
+.folders { font-size: 10.5px; color: var(--dim); word-break: break-all; }
+.folders div { display: flex; justify-content: space-between; gap: 6px; padding: 2px 0; }
+.folders button { border: 0; background: transparent; color: var(--dim); cursor: pointer; }
+.tplgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-top: 10px; max-height: 420px; overflow-y: auto; }
+.tplgrid .empty { color: var(--dim); }
+.tpl { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; cursor: pointer; background: #000; }
+.tpl:hover { border-color: #6a4a5a; }
+.tpl.on { border-color: var(--line-hi); box-shadow: 0 0 10px #ff7a5940; }
+.tpl img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.tpl .meta { padding: 3px 6px 5px; background: var(--bg2); font-size: 10px; }
+.tpl .meta span { display: block; color: var(--dim); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.screen .tplview { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; background: #000; color: var(--dim); font-size: 10px; }
+.screen .tplview img { width: 92%; height: auto; object-fit: contain; }
+.btn.hot { border-color: var(--accent-2); color: var(--accent-2); }
+.dropzone { margin-top: 8px; border: 1px dashed var(--line); border-radius: 8px; padding: 10px; text-align: center; color: var(--dim); font-size: 10.5px; }
+body.dragging .dropzone, .dropzone.over { border-color: var(--accent-2); color: var(--accent-2); background: #2f2420; }
+.preset.tplcard { height: auto; padding: 0; background: #000; }
+.preset.tplcard img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; }
+.preset.tplcard .name { width: 100%; padding: 3px 5px; background: var(--bg2); text-align: left; }
+.preset .tools { position: absolute; right: 3px; bottom: 3px; display: none; gap: 2px; }
+.preset:hover .tools { display: flex; }
+.preset .tools button { width: 20px; height: 20px; border: 0; border-radius: 4px; background: #000a; color: #fff; cursor: pointer; font-size: 11px; line-height: 1; padding: 0; }
+.preset .tools button:hover { background: var(--accent); }
+.preset .kind { position: absolute; top: 2px; right: 5px; font-size: 8px; color: var(--accent-2); }
+.custom { border: 1px solid var(--accent-2); border-radius: 8px; padding: 8px 10px; margin-top: 10px; background: #2a2320; }
+.hint a { color: var(--accent-2); }
+.folders:empty { display: none; }
+select.mini { width: auto; flex: 0 0 auto; height: 30px; }
+.folders span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

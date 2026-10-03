@@ -13,7 +13,7 @@ $src  = Split-Path -Parent $PSScriptRoot
 $dest = Join-Path $env:APPDATA 'Adobe\CEP\extensions\Popline'
 Write-Host "Installing Popline to $dest"
 New-Item -ItemType Directory -Force -Path $dest | Out-Null
-foreach ($item in 'CSXS','css','js','jsx','fonts','bin','models','index.html','.debug') {
+foreach ($item in 'CSXS','css','js','jsx','fonts','bin','models','packs','index.html','.debug') {
   Copy-Item -Recurse -Force (Join-Path $src $item) $dest
 }
 
@@ -55,6 +55,18 @@ if (-not (Test-Path $mfile)) {
   Write-Host "Downloading the '$Model' speech model..."
   Invoke-WebRequest "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-$Model.bin" -OutFile $mfile
 }
+
+# Inter (used by the bundled title templates): per-user font install, no admin needed.
+$userFonts = Join-Path $env:LOCALAPPDATA 'Microsoft\Windows\Fonts'
+New-Item -ItemType Directory -Force -Path $userFonts | Out-Null
+$fontKey = 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts'
+$interFiles = @(Get-ChildItem (Join-Path $src 'fonts') -Filter 'Inter-*.ttf') + @(Get-ChildItem (Join-Path $src 'fonts\system') -Filter '*.ttf')
+foreach ($f in $interFiles) {
+  $target = Join-Path $userFonts $f.Name
+  if (-not (Test-Path $target)) { Copy-Item $f.FullName $target -Force }
+  New-ItemProperty -Path $fontKey -Name ($f.BaseName + ' (TrueType)') -Value $target -PropertyType String -Force | Out-Null
+}
+Write-Host "Installed the Inter font for the title templates"
 
 Remove-Item -Recurse -Force $tmp
 Write-Host ""

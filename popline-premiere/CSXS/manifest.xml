@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="7.0" ExtensionBundleId="com.popline.premiere" ExtensionBundleVersion="1.0.0" ExtensionBundleName="Popline"
+<ExtensionManifest Version="7.0" ExtensionBundleId="com.popline.premiere" ExtensionBundleVersion="2.0.0" ExtensionBundleName="Popline"
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <ExtensionList>
-    <Extension Id="com.popline.premiere.panel" Version="1.0.0" />
+    <Extension Id="com.popline.premiere.panel" Version="2.0.0" />
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>

@@ -1,82 +1,94 @@
-# Popline: viral captions for Premiere Pro
+# Popline 2: transcript captions + title presets for Premiere Pro
 
-A Premiere Pro panel that **transcribes your clips** and turns the words into **animated, fully editable "viral" captions**: word-by-word highlights, pop/bounce, blur reveal, smooth opacity, glitch and more. Pick a preset, tweak every detail, and drop the captions onto your timeline.
+A Premiere Pro panel that **transcribes your whole timeline** and turns it into **animated, editable captions**. You can style every caption, or **individual words**, with any of **53 built-in looks** or your own **Motion Graphics Template (.mogrt) presets**. **Smart Mix** picks a fitting preset for each phrase.
 
 ```
- 01 TRANSCRIBE          02 EDIT                  03 STYLE                     04 ADD
- whisper.cpp on your    fix words, *emphasise*,   13 presets + every setting:  animated caption layer on the top track
- computer (or OpenAI)   split | merge, sync,      font, colours, outline,      (update in place) · Premiere caption track
- → word timings         find & replace            glow, highlight, motion      · your own .mogrt · SRT / ASS / TXT
+ 01 TRANSCRIBE     02 EDIT                     03 PRESETS                        04 STYLE           05 ADD
+ whole sequence →  fix words, give a word or   53 looks + your .mogrt library:   fine-tune the     one layer of animated
+ word timings      caption its own look /      add · delete · ＋ at playhead ·   main look, save   captions + your templates,
+                   template                    drag to timeline · customise ·    it as a preset    update in place
+                                               apply to all · Smart Mix
 ```
 
-## Features
+## What it can do
 
-- **Transcription with word timings**
-  - Runs offline on your computer with [whisper.cpp](https://github.com/ggml-org/whisper.cpp), or uses the OpenAI API if you add a key.
-  - Source: the selected timeline clips, or a whole audio track (optionally only between In/Out). Clip trims, timeline position and speed changes are accounted for.
-  - 99 languages, with auto-detect. Optional translate-to-English, a vocabulary hint for names and brands, and automatic removal of filler words (um, uh).
-- **Edit like a document**
-  - Every caption is a text box.
-  - `*word*` gives a word the highlight colour. `|` splits a caption. ⤒ merges with the caption above.
-  - Sync ±0.1s, find & replace, delete.
-  - Clicking a caption moves Premiere's playhead to it.
-- **Style**
-  - **13 presets**: Bold Pop, Beast, Box Highlight, Karaoke Reveal, One Word Punch, Blur Reveal, Smooth Opacity, Smooth Up, Elegant Serif, Clean Minimal, Glitch, Neon, Comic. You can also **save your own presets**.
-  - **13 bundled fonts** (OFL/Apache licensed): Montserrat, Poppins, Anton, Bebas Neue, Archivo Black, Luckiest Guy, Bangers, DM Serif Display, Great Vibes.
-  - Colours: text, highlight, outline, box and shadow; rainbow words.
-  - Outline, shadow (with opacity) and glow.
-  - Active-word effect: colour, box, pop, or word-by-word reveal.
-  - Words per caption, characters per line, 1–3 lines.
-  - 11 in-animations at adjustable speed, plus an optional fade out and vertical position.
-  - Long lines automatically shrink to fit the frame.
-- **Live preview**: the exact caption render over the real frame from your clip. **PLAY CAPTION** renders a short animated preview.
-- **Four ways to add captions**
-  1. **Animated captions**: a transparent ProRes 4444 layer at the sequence's size and frame rate, placed on the top free video track (a new track is added if needed). Edit or restyle and press **UPDATE**: the same clip is relinked to the new render, so your cuts and effects on it stay put.
-  2. **Premiere captions**: a native caption track, editable in Premiere's Text panel and styled in Essential Graphics. These have no animation.
-  3. **Your own MOGRT**: one instance of any `.mogrt` with a text field per caption, e.g. a title pack like the one in the reference video. Its animation plays and the text stays editable in Essential Graphics.
-  4. **Export** SRT, ASS (opens in Aegisub, or burn in with ffmpeg) or a plain transcript.
-- The whole session (words, edits, style) is saved in `Popline/<sequence>/popline.json` next to your project, and comes back when you reopen the sequence.
+1. **Add presets**: **＋ ADD PRESET** imports `.mogrt` files into your library. You can also **drag .mogrt files onto the panel**. Popline also finds title-pack folders in Downloads, Documents and Desktop automatically (e.g. `Downloads\TITLES PRESETS…`), or you can add a folder.
+2. **Delete presets**: 🗑 on any card. Library templates are deleted. Templates in outside folders are hidden, and the original file is kept. Built-in looks are hidden, and **Restore deleted presets** brings them back.
+3. **One click or drag to the timeline**:
+   - **＋** puts a preset at the playhead with your own text, even where nobody is speaking. For a look, Popline renders a short animated title; for a template, it places the template.
+   - **Drag** a template card straight onto the timeline.
+   - **Click** a card to use it on the selected caption.
+4. **Customise**:
+   - **Templates**: ✎ sets the name, the Smart Mix category, default text, size, and every colour and number control the template exposes (e.g. text colour, shadow opacity, gradient colours). Popline applies them each time it places the template.
+   - **Looks**: ✎ opens the look in STYLE, where you can set font, colours, outline, glow, gradient fade, active-word effect, animation, timing and position. **SAVE AS PRESET** keeps your version.
+5. **Apply to the entire transcript**: **APPLY TO ALL** uses one preset for every caption, whether it's a look or a template.
+6. **Smart Mix**: different presets per phrase, chosen from what's said:
+   - **Matching**: the opening hook, hype words, numbers and money get punchy presets. Serious or dramatic lines go cinematic, emotional lines elegant, questions modern, gaming/tech retro. Slow, calm delivery gets minimal presets.
+   - **Main look**: plain lines keep it, so the edit stays consistent.
+   - **Variety** sets how much changes, from 0 (one look everywhere) up to a lot. **SHUFFLE** gives a new mix with the same rules, and **UNDO MIX** resets everything.
+   - **Pool**: looks, templates, both, or only one category.
+
+**Per-word looks**: in EDIT, click words in the selected caption, then pick a look for just those words. They keep their own font, colours and animation (keyed to when each word is spoken) inside any caption.
+
+## Built-in looks (53)
+
+| Category | Looks |
+|---|---|
+| Viral | Bold Pop, Beast, Box Highlight, Karaoke Reveal, Karaoke Fill, One Word Punch, Hollow Fill, Underline Pop, Big Word, Bubble Box, Gamer, Hype |
+| Modern | Modern Italic, Modern Gradient, Modern Bold, Modern Slide, Modern Cascade, Modern Black, Apple Style |
+| Cinematic | Blur Reveal, Smooth Opacity, Glitch, Error, VHS, Zoom In, Zoom Out, Warp, 3D Flip |
+| Elegant | Smooth Up, Elegant Serif, Old Money, Triple Elegant, Handwritten, Signature, Classy |
+| Retro | Neon, Neon Tube, Arcade, Retro 80s, Military, Terminal |
+| Fun | Comic, Trippy, Water, Waves, Rebote, Marker, Sticker |
+| Minimal | Clean Minimal, Classic Subtitle, Right In, Zoom Word, Swing |
+
+- **Animations**: fade, pop, bounce, blur reveal, smooth opacity (spread), smooth up, drop, right/left in, zoom in/out, warp, 3D flip, swing, rotate in, shake, neon flicker, letter cascade, waves, typewriter, handwritten wipe, glitch and VHS.
+- **Active-word effects**: colour, box, pop, bigger, underline, hollow→filled, reveal, karaoke fill sweep.
+- **Fonts**: 32 bundled (OFL/Apache, licences in `fonts/licenses`).
 
 ## Install
 
 Unzip **`Popline-<version>.zip`**, then:
 
-- **Windows**: double-click **`Install Windows.bat`**. It installs per-user with no admin rights. It downloads ffmpeg (or reuses Grabbit's copy), whisper.cpp and the *base* speech model.
-- **macOS**: double-click **`Install Mac.command`** (right-click → Open if macOS blocks it). It uses Homebrew for ffmpeg and whisper.cpp and downloads the *base* model. Without Homebrew, choose the OpenAI engine in the panel.
+- **Windows**: double-click **`Install Windows.bat`**. It installs per-user, with no admin needed, and sets up:
+  - ffmpeg (or reuses Grabbit's copy)
+  - whisper.cpp and the *base* speech model
+  - the Inter font for the bundled title templates
+  - your title templates, copied into your preset library on first launch
+- **macOS**: double-click **`Install Mac.command`** (right-click → Open if blocked). It uses Homebrew for ffmpeg and whisper.cpp.
 
 Restart Premiere, then open **Window → Extensions → Popline Captions**.
 
-More models are downloaded from the panel's **Transcribe** tab:
+## Adding captions to the timeline
 
-| Model | Size | Notes |
-|---|---|---|
-| tiny | 75 MB | quickest |
-| base | 142 MB | the installed default |
-| small | 466 MB | noticeably more accurate |
-| large-v3-turbo | 547 MB | best |
+**ADD CAPTIONS TO TIMELINE** places two things:
 
-## How it works
+- Captions using looks become **one transparent ProRes 4444 layer** on the top free video track.
+- Captions using templates become **Motion Graphics Templates** on the track above, with the words filled into the template's text fields (split across them for multi-field templates). They keep their own animation and stay editable in Essential Graphics.
 
-| Piece | What it does |
+After any change, press it again. The animated layer is re-rendered and **relinked in place**, and the templates are replaced, never duplicated.
+
+Also: **ADD AS PREMIERE CAPTIONS** (a native caption track) and exports to SRT / ASS / TXT.
+
+## Files
+
+| Path | What it does |
 |---|---|
-| `jsx/host.jsx` | ExtendScript: reads the sequence and clips (media path, in point, timeline position, speed), places/relinks the overlay, creates caption tracks, inserts MOGRTs |
-| `js/transcribe.js` | ffmpeg cuts each clip's used audio to 16 kHz WAV → `whisper-cli -ml 1 -sow -oj` (one word per segment) → words mapped back to sequence time |
-| `js/captions.js` | Groups words into captions; handles edits; builds **ASS subtitles** where every spoken word gets its own event with `\t` transforms (pop, blur, spread, slide…), so animations continue seamlessly across word changes |
-| `js/render.js` | ffmpeg + libass draw the ASS onto a transparent canvas → ProRes 4444 with alpha; also preview stills (PNG) and preview clips (WebM) |
-| `js/main.js` | The panel |
-
-## Development
+| `js/looks.js` | Fonts, the 53 looks, animation and highlight library |
+| `js/captions.js` | Words → captions; edits, per-word/caption looks; ASS rendering; template placements |
+| `js/smart.js` | Smart Mix: classifies each phrase and picks a fitting preset |
+| `js/mogrt.js` | Reads .mogrt files (text fields, colour/number controls, thumbnail) without unpacking them |
+| `js/library.js` | Preset library in `~/.popline/library`: import, delete/hide, per-template settings |
+| `js/transcribe.js`, `js/render.js` | whisper.cpp / OpenAI transcription; ffmpeg + libass rendering |
+| `jsx/host.jsx` | Premiere side: clips, overlay place/relink, MOGRT placement with text, scale and colour settings, removal |
+| `packs/` | Templates bundled into your install zip (seeded into the library on first launch) |
 
 ```bash
-node --test test/popline.test.js   # needs ffmpeg with libass (+ libvpx for preview clips)
+node --test test/popline.test.js
 ```
 
-The `.debug` file exposes DevTools at <http://localhost:8098> while Premiere runs.
+## Notes
 
-## Troubleshooting
-
-- **"whisper.cpp not found"**: run the installer, or switch the engine to *OpenAI API*.
-- **"built without libass"**: your ffmpeg can't draw subtitles. Rerun the installer, or drop a full ffmpeg build into `bin/`.
-- **Captions out of sync**: use *SYNC ±0.1s* in the Edit tab. If a clip has time remapping (not a constant speed change), caption that clip after a nest/render.
-- **Words wrong**: pick a bigger model, add names to *Vocabulary hint*, or fix them in the Edit tab. Your fixes are kept when you restyle.
-- **Overlay file size**: ProRes 4444 is roughly 100 MB per minute at 1080×1920. It's an intermediate, so you can delete old `Popline Captions v*.mov` files in the `Popline` folder.
+- **Templates with a different font**: templates made in After Effects use the fonts they were designed with. The bundled ones use Inter, which the installer adds. If a template from another pack shows a different font, install the font listed on its card (hover).
+- **Drag to the timeline**: this uses CEP's file drag and works in recent Premiere versions. If your version doesn't accept the drop, use **＋** instead.
+- **Smart Mix** runs offline on the transcript, so nothing is sent anywhere. It also respects the category you give each template in ✎.

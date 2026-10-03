@@ -121,6 +121,19 @@ function popline_sources(scope, trackIndex, limitToInOut) {
             }
             list = audio.length ? audio : video;
             if (!list.length) return pl_json({ ok: false, error: 'Select the clips to caption on the timeline (or switch Source to an audio track).' });
+        } else if (scope === 'all') {
+            // Whole video: every clip on every audio track that is not muted.
+            for (var t = 0; t < seq.audioTracks.numTracks; t++) {
+                var at = seq.audioTracks[t];
+                var muted = false;
+                try { muted = at.isMuted(); } catch (eM) {}
+                if (muted) continue;
+                for (i = 0; i < at.clips.numItems; i++) {
+                    info = pl_clipInfo(at.clips[i]);
+                    if (info) { info.track = t; list.push(info); }
+                }
+            }
+            if (!list.length) return pl_json({ ok: false, error: 'No audio clips on unmuted tracks in this sequence.' });
         } else {
             var tr = seq.audioTracks[trackIndex || 0];
             if (!tr) return pl_json({ ok: false, error: 'That audio track does not exist.' });
@@ -242,10 +255,11 @@ function popline_placeOverlay(filePath, startSec, durSec, binName) {
         var seq = app.project.activeSequence;
         if (!seq) return pl_json({ ok: false, error: 'Open a sequence first.' });
         var item = pl_import(filePath, binName);
+        if (startSec < 0) startSec = seq.getPlayerPosition().seconds;
         var idx = pl_captionTrack(seq, startSec, startSec + durSec);
         var track = seq.videoTracks[idx];
         track.overwriteClip(item, pl_time(startSec));
-        return pl_json({ ok: true, track: track.name, clip: item.name });
+        return pl_json({ ok: true, track: track.name, clip: item.name, at: startSec });
     } catch (e) {
         return pl_err(e);
     }
@@ -281,20 +295,20 @@ function popline_importCaptions(srtPath, binName) {
     }
 }
 
-/** Find the first text parameter of a MOGRT instance. */
-function pl_mgtTextParam(comp) {
-    var props = comp.properties;
-    var i, p, fallback = null;
+/** The text parameters of a MOGRT instance, in order (After Effects and Premiere templates). */
+function pl_mgtTextParams(comp, slotNames) {
+    var props = comp.properties, found = [], i, p;
     for (i = 0; i < props.numItems; i++) {
         p = props[i];
-        var dn = String(p.displayName || '');
         var v = null;
         try { v = p.getValue(); } catch (e) {}
         if (typeof v !== 'string') continue;
-        if (/text/i.test(dn) || v.indexOf('textEditValue') >= 0) return p;
-        if (!fallback) fallback = p;
+        var dn = String(p.displayName || '');
+        var named = false;
+        for (var k = 0; slotNames && k < slotNames.length; k++) if (dn === slotNames[k]) named = true;
+        if (named || /text/i.test(dn) || v.indexOf('textEditValue') >= 0) found.push(p);
     }
-    return fallback;
+    return found;
 }
 
 function pl_setMgtText(p, text) {
@@ -307,33 +321,104 @@ function pl_setMgtText(p, text) {
     }
 }
 
-/**
- * One MOGRT instance per caption on the top free track. items: [{start, end, text}] (sequence seconds).
- * The template's own animation plays; the text stays editable in Essential Graphics.
- */
-function popline_placeMogrt(mogrtPath, items) {
+function pl_setMgtScale(comp, name, pct) {
+    var props = comp.properties;
+    for (var i = 0; i < props.numItems; i++) {
+        var p = props[i];
+        if (pl_trim(p.displayName) !== pl_trim(name)) continue;
+        try { p.setValue([pct, pct, 100], true); return true; } catch (e1) {}
+        try { p.setValue(pct, true); return true; } catch (e2) {}
+    }
+    return false;
+}
+
+function pl_trim(s) { return String(s || '').replace(/^\s+|\s+$/g, ''); }
+
+/** Colour / number overrides by control name: params = [{name, type:'color'|'number', value}] */
+function pl_setMgtParams(comp, params) {
+    var props = comp.properties;
+    for (var k = 0; k < params.length; k++) {
+        var want = params[k];
+        for (var i = 0; i < props.numItems; i++) {
+            var p = props[i];
+            if (pl_trim(p.displayName) !== pl_trim(want.name)) continue;
+            try {
+                if (want.type === 'color') {
+                    var h = String(want.value).replace('#', '');
+                    p.setColorValue(255, parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16), true);
+                } else {
+                    p.setValue(Number(want.value), true);
+                }
+            } catch (e) {}
+            break;
+        }
+    }
+}
+
+/** Remove timeline items Popline placed earlier (by nodeId). */
+function popline_removeItems(ids) {
     try {
         var seq = app.project.activeSequence;
         if (!seq) return pl_json({ ok: false, error: 'Open a sequence first.' });
-        if (!new File(mogrtPath).exists) return pl_json({ ok: false, error: 'MOGRT not found: ' + mogrtPath });
-        if (!items.length) return pl_json({ ok: false, error: 'No captions.' });
-        var idx = pl_captionTrack(seq, items[0].start, items[items.length - 1].end);
-        var placed = 0, textSet = 0;
-        for (var i = 0; i < items.length; i++) {
-            var it = items[i];
-            var ticks = String(Math.round(it.start * 254016000000));
-            var ti = seq.importMGT(mogrtPath, ticks, idx, 0);
-            if (!ti) continue;
-            placed++;
-            try { ti.end = pl_time(it.end); } catch (e1) {}
-            try {
-                var comp = ti.getMGTComponent();
-                var p = comp ? pl_mgtTextParam(comp) : null;
-                if (p) { pl_setMgtText(p, it.text); textSet++; }
-            } catch (e2) {}
+        var want = {}, removed = 0, i, t, c;
+        for (i = 0; i < ids.length; i++) want[ids[i]] = true;
+        for (t = 0; t < seq.videoTracks.numTracks; t++) {
+            var clips = seq.videoTracks[t].clips;
+            for (c = clips.numItems - 1; c >= 0; c--) {
+                var it = clips[c];
+                if (it && want[it.nodeId]) { try { it.remove(false, false); removed++; } catch (e1) {} }
+            }
         }
-        return pl_json({ ok: true, placed: placed, textSet: textSet, track: seq.videoTracks[idx].name });
+        return pl_json({ ok: true, removed: removed });
     } catch (e) {
         return pl_err(e);
     }
+}
+
+/**
+ * Place Motion Graphics Templates on the top free track, one per caption.
+ * items: [{ path, start, end, texts: [..], slotNames: [..], scale: % or null }] (sequence seconds)
+ * Each template's own animation plays; the text stays editable in Essential Graphics.
+ */
+function popline_placeMogrts(items) {
+    try {
+        var seq = app.project.activeSequence;
+        if (!seq) return pl_json({ ok: false, error: 'Open a sequence first.' });
+        if (!items.length) return pl_json({ ok: false, error: 'No captions use a template.' });
+        var idx = pl_captionTrack(seq, items[0].start, items[items.length - 1].end);
+        var placed = 0, textSet = 0, scaled = 0, missing = [], ids = [];
+        for (var i = 0; i < items.length; i++) {
+            var it = items[i];
+            if (!new File(it.path).exists) { missing.push(it.path); continue; }
+            var startS = it.start < 0 ? seq.getPlayerPosition().seconds : it.start;
+            var endS = it.start < 0 ? startS + (it.end - it.start) : it.end;
+            if (it.start < 0 && i === 0) idx = pl_captionTrack(seq, startS, endS);
+            var ticks = String(Math.round(startS * 254016000000));
+            var ti = seq.importMGT(it.path, ticks, idx, 0);
+            if (!ti) continue;
+            placed++;
+            try { ids.push(ti.nodeId); } catch (eId) {}
+            try { ti.end = pl_time(endS); } catch (e1) {}
+            try {
+                var comp = ti.getMGTComponent();
+                if (!comp) continue;
+                var params = pl_mgtTextParams(comp, it.slotNames);
+                for (var k = 0; k < params.length && k < it.texts.length; k++) pl_setMgtText(params[k], it.texts[k]);
+                if (params.length) textSet++;
+                if (it.scale && it.scaleParam && pl_setMgtScale(comp, it.scaleParam, it.scale)) scaled++;
+                if (it.params) pl_setMgtParams(comp, it.params);
+            } catch (e2) {}
+        }
+        if (!placed && missing.length) return pl_json({ ok: false, error: 'Template file not found: ' + missing[0] });
+        return pl_json({ ok: true, placed: placed, textSet: textSet, scaled: scaled, ids: ids, track: seq.videoTracks[idx].name });
+    } catch (e) {
+        return pl_err(e);
+    }
+}
+
+/** Older single-template entry point: every caption with the same .mogrt. */
+function popline_placeMogrt(mogrtPath, items) {
+    var list = [];
+    for (var i = 0; i < items.length; i++) list.push({ path: mogrtPath, start: items[i].start, end: items[i].end, texts: [items[i].text] });
+    return popline_placeMogrts(list);
 }

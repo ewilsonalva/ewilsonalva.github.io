@@ -213,7 +213,7 @@ function transcribeSources(tools, sources, opts, hooks) {
       }).then(function (tokens) {
         // Clip-relative -> sequence time (accounting for speed changes).
         tokens.forEach(function (t) {
-          all.push({ text: t.text, start: src.startSec + t.start / speed, end: src.startSec + t.end / speed });
+          all.push({ text: t.text, start: src.startSec + t.start / speed, end: src.startSec + t.end / speed, src: i });
         });
       });
     });

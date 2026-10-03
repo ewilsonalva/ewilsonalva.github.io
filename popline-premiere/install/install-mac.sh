@@ -12,7 +12,12 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 
 echo "Installing Popline to $DEST"
 mkdir -p "$DEST"
-for item in CSXS css js jsx fonts bin models index.html .debug; do cp -R "$SRC/$item" "$DEST/"; done
+for item in CSXS css js jsx fonts bin models packs index.html .debug; do cp -R "$SRC/$item" "$DEST/"; done
+
+# Inter (used by the bundled title templates)
+mkdir -p "$HOME/Library/Fonts"
+cp -n "$SRC"/fonts/Inter-*.ttf "$SRC"/fonts/system/*.ttf "$HOME/Library/Fonts/" 2>/dev/null || true
+echo "Installed the Inter font for the title templates"
 for v in 9 10 11 12 13; do defaults write "com.adobe.CSXS.$v" PlayerDebugMode 1; done
 echo "Enabled PlayerDebugMode for CSXS 9-13"
 

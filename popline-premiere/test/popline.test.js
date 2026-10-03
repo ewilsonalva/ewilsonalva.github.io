@@ -12,6 +12,9 @@ var fs = require('fs');
 var os = require('os');
 var childProcess = require('child_process');
 var C = require('../js/captions.js');
+var LK = require('../js/looks.js');
+var M = require('../js/mogrt.js');
+var SM = require('../js/smart.js');
 var T = require('../js/transcribe.js');
 var R = require('../js/render.js');
 var U = require('../js/util.js');
@@ -98,7 +101,7 @@ test('buildAss: every preset produces valid, time-ordered events', function () {
     var caps = C.groupCaptions(words, p.style);
     var ass = C.buildAss(words, caps, p.style, frame, 0);
     assert.match(ass, /PlayResX: 1080/);
-    assert.match(ass, new RegExp('Style: Cap,' + p.style.font + ','));
+    assert.ok(ass.indexOf('Style: Cap,' + LK.fontFace(p.style.font).name + ',') >= 0, p.id + ' style line');
     var ev = ass.split('\n').filter(function (l) { return /^Dialogue:/.test(l); });
     assert.ok(ev.length >= caps.length, p.id + ' has events');
     ev.forEach(function (l) {
@@ -240,5 +243,130 @@ test('every bundled font file exists and has a licence', function () {
   Object.keys(C.FONTS).forEach(function (name) {
     assert.ok(fs.existsSync(path.join(ROOT, 'fonts', C.FONTS[name].file)), name);
   });
-  assert.ok(fs.readdirSync(path.join(ROOT, 'fonts', 'licenses')).length >= 9);
+  assert.ok(fs.readdirSync(path.join(ROOT, 'fonts', 'licenses')).length >= 25);
+});
+
+/* ------------------------------------------------------------ v2: looks, per-word looks, templates, library, smart mix */
+
+test('50+ looks, each referencing a real font, animation and highlight', function () {
+  assert.ok(LK.LOOKS.length >= 50, 'got ' + LK.LOOKS.length);
+  var ids = {};
+  LK.LOOKS.forEach(function (l) {
+    assert.ok(!ids[l.id], 'unique id ' + l.id); ids[l.id] = 1;
+    assert.ok(LK.FONTS[l.style.font], l.id + ' font');
+    assert.ok(LK.ANIMS[l.style.anim], l.id + ' anim');
+    assert.ok(LK.HIGHLIGHTS[l.style.highlight], l.id + ' highlight');
+    assert.ok(LK.CATEGORIES.indexOf(l.cat) >= 0, l.id + ' category');
+  });
+});
+
+test('per-word and per-caption looks render with their own font; templates are left out of the ASS', function () {
+  var words = C.normalizeWords(' You will NOT believe what happened next'.split(/(?= )/).map(function (t, i) { return { text: t, start: i * 0.3, end: i * 0.3 + 0.25 }; }));
+  var st = Object.assign({}, LK.lookById('bold-pop').style, { maxWords: 4 });
+  words = C.setWordLook(words, [2], 'handwritten');
+  var caps = C.groupCaptions(words, st);
+  words = C.setCaptionLook(words, caps[1], 'modern-text');
+  caps = C.groupCaptions(words, st);
+  var ass = C.buildAss(words, caps, st, { w: 1080, h: 1920 }, 0);
+  assert.match(ass, /\\fnSatisfy[^}]*\}NOT/, 'word look font');
+  assert.match(ass, /\\fnInter\\[^}]*\\i1[^}]*\}(\{[^}]*\})?b/i, 'caption look font (Inter Bold Italic)');
+  // gradient tail: the modern look ramps the colour across letters
+  assert.ok((ass.match(/\\1c&H/g) || []).length > 20);
+  // template captions are not drawn
+  var w2 = C.setCaptionLook(words, caps[0], null, 'tpl1');
+  var c2 = C.groupCaptions(w2, st);
+  var ass2 = C.buildAss(w2, c2, st, { w: 1080, h: 1920 }, 0);
+  assert.ok(!/YOU/.test(ass2.split('[Events]')[1]), 'templated caption skipped');
+  var items = C.templateItems(w2, c2, st, { tpl1: { path: '/x/T.mogrt', slots: 3, slotNames: ['Text 01', 'Text 02', 'Text 03'], scaleParam: 'S', comp: { w: 3840, h: 2160 } } }, { w: 1080, h: 1920 }, 100);
+  assert.strictEqual(items.length, 1);
+  assert.deepStrictEqual(items[0].texts, ['YOU', 'WILL', 'NOT']);
+  assert.strictEqual(items[0].scale, 28.1);
+});
+
+test('edits keep word looks; new animations and highlights build', function () {
+  var words = [{ text: 'big', start: 0, end: 0.3, look: 'glitch' }, { text: 'deal', start: 0.3, end: 0.6 }];
+  var out = C.applyCaptionEdit(words, { from: 0, to: 1 }, 'a big deal');
+  assert.strictEqual(out[1].look, 'glitch');
+  ['cascade', 'wave', 'typewriter', 'wipe', 'vhs', 'shake', 'flip', 'stretch'].forEach(function (a) {
+    ['karaoke', 'hollow', 'underline', 'bigger'].forEach(function (h) {
+      var s = C.withDefaults({ anim: a, highlight: h, maxWords: 4 });
+      var ass = C.buildAss(words, C.groupCaptions(words, s), s, { w: 1920, h: 1080 }, 0);
+      assert.ok(!/NaN|undefined/.test(ass), a + '/' + h);
+    });
+  });
+});
+
+test('splitIntoSlots and dedupeOverlaps', function () {
+  assert.deepStrictEqual(C.splitIntoSlots(['A', 'B', 'C', 'D', 'E'], 3), ['A B', 'C D', 'E']);
+  assert.deepStrictEqual(C.splitIntoSlots(['HI'], 3), ['HI', '', '']);
+  var w = [{ text: 'a', start: 0, end: 0.4, src: 0 }, { text: 'a', start: 0.05, end: 0.4, src: 1 }, { text: 'b', start: 0.5, end: 0.8, src: 1 }];
+  assert.deepStrictEqual(C.dedupeOverlaps(w).map(function (x) { return x.src + x.text; }), ['0a', '1b']);
+});
+
+test('mogrt reader: definition, text slots, params, thumbnail (bundled packs/)', { skip: !fs.existsSync(path.join(ROOT, 'packs', 'Text Presets')) && 'no bundled packs' }, function () {
+  var dir = fs.mkdtempSync(path.join(os.tmpdir(), 'popline-th-'));
+  var r = M.scanPacks([path.join(ROOT, 'packs')], dir);
+  assert.strictEqual(r.errors.length, 0, r.errors.join('; '));
+  assert.ok(r.templates.length >= 5);
+  var t1 = r.templates.filter(function (t) { return /01/.test(t.name); })[0];
+  assert.strictEqual(t1.slots, 3);
+  assert.deepStrictEqual(t1.slotNames, ['Text 01', 'Text 02', 'Text 03']);
+  assert.deepStrictEqual(t1.comp, { w: 3840, h: 2160 });
+  assert.ok(t1.params.some(function (p) { return p.type === 'color'; }));
+  assert.ok(fs.statSync(t1.thumb).size > 1000);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('library: seed, import, customise, delete (temp home)', { skip: !fs.existsSync(path.join(ROOT, 'packs', 'Text Presets')) && 'no bundled packs' }, function () {
+  var home = fs.mkdtempSync(path.join(os.tmpdir(), 'popline-home-'));
+  var old = process.env.HOME;
+  process.env.HOME = home;
+  try {
+    delete require.cache[require.resolve('../js/library.js')];
+    var LIB = require('../js/library.js');
+    assert.strictEqual(LIB.seed(ROOT), 5);
+    assert.strictEqual(LIB.seed(ROOT), 0, 'only once');
+    var list = LIB.list([]).templates;
+    assert.strictEqual(list.length, 5);
+    var src = path.join(ROOT, 'packs', 'Text Presets', 'Text_Preset_02.mogrt');
+    var added = LIB.importFiles([src]);
+    assert.ok(/Text_Preset_02 \(2\)\.mogrt$/.test(added[0]) || /Text_Preset_02\.mogrt$/.test(added[0]));
+    var buf = LIB.importBuffer('Dropped.mogrt', fs.readFileSync(src));
+    assert.ok(fs.existsSync(buf));
+    assert.throws(function () { LIB.importBuffer('broken.mogrt', Buffer.from('nope')); });
+    list = LIB.list([]).templates;
+    assert.strictEqual(list.length, 7);
+    var t = list[0];
+    LIB.saveSettings(t.id, { label: 'My Title', cat: 'Elegant', params: { 'Start Color': '#ff0000' } });
+    var again = LIB.list([]).templates.filter(function (x) { return x.id === t.id; })[0];
+    assert.strictEqual(again.name, 'My Title');
+    assert.strictEqual(again.cat, 'Elegant');
+    LIB.remove(again);
+    assert.ok(!fs.existsSync(again.path));
+    assert.strictEqual(LIB.list([]).templates.length, 6);
+  } finally {
+    process.env.HOME = old;
+    fs.rmSync(home, { recursive: true, force: true });
+  }
+});
+
+test('smart mix: context picks fitting categories, base lines keep the main look, no back-to-back repeats', function () {
+  var lines = ['So here is the thing', 'I made $10,000 in one week', 'and it was INSANE!', 'but I was scared', 'that I would lose everything', 'what would you do?', 'I love my family', 'we went to the store'];
+  var caps = lines.map(function (t, i) { return { text: t, start: i * 2, end: i * 2 + 1.5 }; });
+  var pool = LK.LOOKS.map(function (l) { return { key: 'look:' + l.id, label: l.label, cat: l.cat }; });
+  var plan = SM.plan(caps, pool, { variety: 100, seed: 5 });
+  var cat = function (k) { return k ? LK.lookById(k.slice(5)).cat : null; };
+  assert.strictEqual(plan[0].mood, 'hook');
+  assert.strictEqual(plan[1].mood, 'number');
+  assert.strictEqual(plan[2].mood, 'hype');
+  assert.strictEqual(plan[3].mood, 'serious');
+  assert.ok(['Cinematic', 'Modern'].indexOf(cat(plan[3].key)) >= 0);
+  assert.strictEqual(plan[5].mood, 'question');
+  assert.strictEqual(plan[6].mood, 'soft');
+  assert.ok(['Elegant', 'Modern'].indexOf(cat(plan[6].key)) >= 0);
+  for (var i = 1; i < plan.length; i++) if (plan[i].key) assert.notStrictEqual(plan[i].key, plan[i - 1].key);
+  assert.strictEqual(SM.plan(caps, pool, { variety: 0, seed: 5 }).filter(function (p) { return p.key; }).length, 0, 'variety 0 = one look');
+  var low = SM.plan(caps, pool, { variety: 5, seed: 5 });
+  low.forEach(function (p) { if (p.key) assert.ok(['hook', 'number', 'serious'].indexOf(p.mood) >= 0, 'low variety only strong moods: ' + p.mood); });
+  assert.deepStrictEqual(SM.plan(caps, pool, { variety: 60, seed: 9 }), SM.plan(caps, pool, { variety: 60, seed: 9 }), 'deterministic');
 });
