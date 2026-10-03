@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Grabbit</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg class="logo" viewBox="0 0 32 32" aria-hidden="true"><rect x="3" y="7" width="20" height="17" rx="3"/><path d="M11 12.5v7l6-3.5z"/><path d="M23 13l6-4v14l-6-4"/></svg>
+      <div>
+        <h1>GRABBIT</h1>
+        <p>for premiere pro</p>
+      </div>
+    </div>
+    <span id="hostState" class="pill">connecting</span>
+  </header>
+
+  <ol class="steps" id="steps">
+    <li data-step="fetch"><b>01</b>FETCH</li>
+    <li data-step="encode"><b>02</b>ENCODE</li>
+    <li data-step="timeline"><b>03</b>TIMELINE</li>
+  </ol>
+  <div class="bar"><div id="barFill"></div></div>
+  <p id="status" class="status">Paste a link or search YouTube.</p>
+
+  <section class="card quick">
+    <div class="row">
+      <button id="pasteBtn" class="btn" title="Images copied from a browser, files copied in Explorer/Finder, or a link. Ctrl/Cmd+V in this panel does the same.">PASTE CLIPBOARD</button>
+      <button id="exportFrameBtn" class="btn" title="Save the frame under the playhead as an image, add it to the project and put it on the timeline.">EXPORT FRAME</button>
+    </div>
+    <div class="row opts">
+      <label class="check"><input id="frameOnTimeline" type="checkbox" checked> Put exported frame on timeline</label>
+      <select id="frameFormat" class="mini" title="Image format for exported frames">
+        <option value="png">PNG</option>
+        <option value="jpg">JPG</option>
+      </select>
+    </div>
+  </section>
+
+  <section class="card">
+    <label for="query">VIDEO LINK OR SEARCH</label>
+    <div class="row">
+      <input id="query" type="text" spellcheck="false" autocomplete="off" placeholder="Paste a link or type to search">
+      <button id="goBtn" class="btn small">SEARCH</button>
+    </div>
+
+    <div id="results" class="results" hidden></div>
+
+    <label>GRAB</label>
+    <div class="seg" id="what" role="radiogroup">
+      <button data-what="video" class="on" role="radio">VIDEO</button>
+      <button data-what="thumb" role="radio">THUMBNAIL</button>
+      <button data-what="frame" role="radio">FRAME</button>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label for="inPoint" id="inLabel">IN POINT <i>(optional)</i></label>
+        <input id="inPoint" type="text" placeholder="0:00" class="tc">
+      </div>
+      <div id="outWrap">
+        <label for="outPoint">OUT POINT <i>(optional)</i></label>
+        <input id="outPoint" type="text" placeholder="0:00" class="tc">
+      </div>
+      <div id="qualityWrap">
+        <label for="quality">MAX QUALITY</label>
+        <select id="quality">
+          <option value="2160">Up to 2160p</option>
+          <option value="1440">Up to 1440p</option>
+          <option value="1080" selected>Up to 1080p</option>
+          <option value="720">Up to 720p</option>
+          <option value="480">Up to 480p</option>
+        </select>
+      </div>
+      <div>
+        <label for="placeMode">INSERT CLIP AT</label>
+        <select id="placeMode">
+          <option value="insert">Insert at playhead</option>
+          <option value="overwrite">Overwrite at playhead</option>
+          <option value="append">Append to end</option>
+          <option value="project">Project bin only</option>
+        </select>
+      </div>
+      <div id="encodeWrap">
+        <label for="encodeMode">ENCODE</label>
+        <select id="encodeMode">
+          <option value="auto">Auto (if needed)</option>
+          <option value="h264">Always H.264</option>
+          <option value="prores">ProRes 422 (big files)</option>
+          <option value="never">Never</option>
+        </select>
+      </div>
+      <div>
+        <label for="binName">PROJECT BIN</label>
+        <input id="binName" type="text" value="Grabbit">
+      </div>
+    </div>
+    <p id="whatHint" class="hint"></p>
+
+    <div class="row actions">
+      <button id="grabBtn" class="btn primary">GRAB TO TIMELINE</button>
+      <button id="cancelBtn" class="btn danger" hidden>CANCEL</button>
+      <button id="folderBtn" class="btn">OPEN FOLDER</button>
+    </div>
+  </section>
+
+  <details class="card settings">
+    <summary>SETTINGS &amp; TOOLS</summary>
+    <label for="outDir">DOWNLOAD FOLDER <i>(blank = "Grabbit Downloads" next to the project)</i></label>
+    <input id="outDir" type="text" spellcheck="false" placeholder="">
+    <label for="cookies">COOKIES FROM BROWSER <i>(for age-gated / members videos you can watch)</i></label>
+    <select id="cookies">
+      <option value="">Off</option>
+      <option value="chrome">Chrome</option>
+      <option value="edge">Edge</option>
+      <option value="firefox">Firefox</option>
+      <option value="brave">Brave</option>
+      <option value="safari">Safari</option>
+    </select>
+    <label class="check"><input id="keepOriginal" type="checkbox"> Keep original download after encoding</label>
+    <div id="tools" class="tools"></div>
+    <div class="row">
+      <button id="updateBtn" class="btn small">UPDATE YT-DLP</button>
+      <button id="recheckBtn" class="btn small">RE-CHECK TOOLS</button>
+    </div>
+  </details>
+
+  <pre id="log" class="log"></pre>
+
+  <footer>
+    <span class="pill">GRABBIT v1.1.0</span>
+    Only grab videos you own or have permission to use. Most platforms' terms restrict downloading, and this tool does not bypass DRM.
+  </footer>
+
+  <script src="js/cep.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

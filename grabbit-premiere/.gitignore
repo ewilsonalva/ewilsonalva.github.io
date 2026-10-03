@@ -1,0 +1,3 @@
+# Downloaded tool binaries (the installers fetch these)
+bin/*
+!bin/README.md

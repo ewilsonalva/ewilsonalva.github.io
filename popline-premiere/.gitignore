@@ -1,0 +1,8 @@
+bin/*
+!bin/README.txt
+models/*
+!models/README.txt
+# Title templates are your own licensed assets: shipped in your install zip, never committed.
+packs/*
+!packs/README.txt
+dist/
